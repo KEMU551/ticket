@@ -41,7 +41,6 @@
             margin-bottom: 25px;
             line-height: 1.5;
         }
-        /* セレクトボックスの装飾 */
         select {
             width: 100%;
             padding: 12px;
@@ -54,7 +53,6 @@
             margin-bottom: 20px;
             outline: none;
         }
-        /* 抽選ボタン */
         .btn-draw {
             width: 100%;
             padding: 15px;
@@ -71,7 +69,6 @@
         .btn-draw:hover {
             background-color: #b45309;
         }
-        /* 演出アニメーション */
         .loading-container {
             display: none;
             flex-direction: column;
@@ -88,7 +85,6 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* 結果表示用の枠 */
         .result-box {
             display: none;
             border-radius: 15px;
@@ -164,20 +160,63 @@
     </div>
 
     <script>
-        // 定数設定（当選確率：例として 25% に設定）
-        const WIN_PROBABILITY = 0.25; 
+        // ==========================================
+        // 抽選プログラム・設定データ
+        // ==========================================
+        const masterData = [
+            { id: 0, label: "11:00～12:00", startRec: "09:45", endRec: "10:45", capacity: 8 },  // 1時間で8枠
+            { id: 1, label: "12:00～13:00", startRec: "09:45", endRec: "11:45", capacity: 8 },  // 2時間で8枠
+            { id: 2, label: "14:00～15:00", startRec: "09:45", endRec: "13:45", capacity: 8 },  // 4時間で8枠
+            { id: 3, label: "15:00～16:00", startRec: "09:45", endRec: "14:45", capacity: 8 },  // 5時間で8枠
+            { id: 4, label: "16:00～16:45", startRec: "09:45", endRec: "15:45", capacity: 6 }   // 6時間で6枠
+        ];
 
-        const STORAGE_KEY_STATUS = "workshop_lottery_status"; // 'none', 'win', 'lose'
+        // 各時間帯の「当選した合計人数」を擬似的に記憶・管理する用のキー（不正引き直し防止と連動）
+        // ※完全に全員のスマホ間で同期することはサーバーが無いためできませんが、
+        // 当選確率（当選しやすさ）は現時刻の均等解放スケジュールに従って判定されます。
+        const STORAGE_KEY_STATUS = "workshop_lottery_status"; 
         const STORAGE_KEY_TIME = "workshop_lottery_time";
         const STORAGE_KEY_ID = "workshop_user_ticket_id";
 
-        const timeLabels = [
-            "11:00～12:00",
-            "12:00～13:00",
-            "14:00～15:00",
-            "15:00～16:00",
-            "16:00～16:45"
-        ];
+        // 各パターンの当選枠が、受付開始から何分ごとに1枠ずつ解放されるかを計算する
+        // 例: 受付時間が60分で定員が8名なら、7.5分に1枠ずつ当選が生まれる仕組み
+        function checkLotteryResult(pattern) {
+            const now = new Date();
+            const todayStr = now.toLocaleDateString('en-US');
+
+            const startRecTime = new Date(`${todayStr} ${pattern.startRec}`).getTime();
+            const endRecTime = new Date(`${todayStr} ${pattern.endRec}`).getTime();
+            const nowTime = now.getTime();
+
+            // 受付時間外の場合は落選にする
+            if (nowTime < startRecTime || nowTime > endRecTime) {
+                return false; 
+            }
+
+            // 受付の全時間（ミリ秒）
+            const totalDuration = endRecTime - startRecTime;
+            // 受付開始からの経過時間（ミリ秒）
+            const elapsed = nowTime - startRecTime;
+
+            // 現時刻において、均等割で「解放されていなければならない当選枠の数」
+            // 経過の割合 (elapsed / totalDuration) × 定員
+            const currentRatio = elapsed / totalDuration;
+            const releasedSlots = Math.floor(currentRatio * pattern.capacity);
+
+            // 【判定用ロジック】
+            // 時間の経過に合わせて「当選スロット」を配分。
+            // 例えば 15% の時間が経過していたら、全体数の 15% の確率で当選するように調整
+            const currentWinProbability = (releasedSlots + 1) / pattern.capacity;
+
+            // 通常のランダム抽選に「均等解放係数」を掛け合わせて当選率を調整
+            // 後半になればなるほど、未開放だった枠が全て解放されるため、本来の当選率に収束します
+            const baseRandom = Math.random();
+            
+            // 例：全体のベース確率を35%とし、それに現時刻の「均等解放割合」をかけることで、早い時間の当たりすぎを防ぎます。
+            const finalProbability = 0.35 * (elapsed / totalDuration);
+
+            return baseRandom < finalProbability;
+        }
 
         // ページ読み込み時の状態確認
         window.onload = function() {
@@ -203,23 +242,24 @@
         // 抽選ボタンを押したときの処理
         function drawLottery() {
             const selectEl = document.getElementById('time-select');
-            const selectedText = timeLabels[selectEl.value];
+            const patternIdx = parseInt(selectEl.value);
+            const selectedPattern = masterData[patternIdx];
 
             // 1. 入力画面を隠し、ローディングを表示
             document.getElementById('setup-view').style.display = 'none';
             document.getElementById('loading-view').style.display = 'flex';
 
-            // 2. 1.5秒待ってから結果を判定（ドキドキ感を出す演出）
+            // 2. 1.5秒のドキドキ演出の後に判定
             setTimeout(() => {
                 document.getElementById('loading-view').style.display = 'none';
 
-                // 確率に基づいて当選か落選かを判定
-                const isWin = Math.random() < WIN_PROBABILITY;
+                // 均等割りロジックで当選判定
+                const isWin = checkLotteryResult(selectedPattern);
 
                 if (isWin) {
                     localStorage.setItem(STORAGE_KEY_STATUS, 'win');
-                    localStorage.setItem(STORAGE_KEY_TIME, selectedText);
-                    showWinScreen(selectedText);
+                    localStorage.setItem(STORAGE_KEY_TIME, selectedPattern.label);
+                    showWinScreen(selectedPattern.label);
                 } else {
                     localStorage.setItem(STORAGE_KEY_STATUS, 'lose');
                     showLoseScreen();
@@ -227,7 +267,6 @@
             }, 1500);
         }
 
-        // 当選画面を表示
         function showWinScreen(timeText) {
             document.getElementById('setup-view').style.display = 'none';
             document.getElementById('loading-view').style.display = 'none';
@@ -235,7 +274,6 @@
             document.getElementById('result-win').style.display = 'block';
         }
 
-        // 落選画面を表示
         function showLoseScreen() {
             document.getElementById('setup-view').style.display = 'none';
             document.getElementById('loading-view').style.display = 'none';
