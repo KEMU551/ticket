@@ -91,7 +91,7 @@
             margin: 0;
         }
         
-        /* バッジ */
+        /* バッジ（受付中、受付終了など） */
         .badge {
             position: absolute;
             right: 15px;
@@ -106,7 +106,7 @@
         .badge-closed { background-color: #fee2e2; color: #991b1b; }
         .badge-waiting { background-color: #f3f4f6; color: #4b5563; }
 
-        /* ボタン */
+        /* 抽選するボタン */
         .btn-draw {
             width: 100%;
             padding: 15px;
@@ -163,30 +163,34 @@
         .lose-title { color: #dc2626; }
         
         .ticket-banner {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: bold;
             color: #065f46;
-            margin: 10px 0 5px 0;
+            margin: 10px 0 15px 0;
             line-height: 1.4;
-        }
-        .ticket-subtitle {
-            font-size: 1.0rem;
-            color: #047857;
-            margin: 15px 0 0 0;
-            font-weight: bold;
         }
 
         .result-meta { font-size: 1.1rem; margin: 10px 0; line-height: 1.5; }
-        .result-time {
+        .result-time-container {
             color: #d97706; 
             font-weight: bold; 
-            font-size: 2.2rem;
+            font-size: 1.8rem; /* タイトルと時間が同じ大きさで綺麗に収まるよう調整 */
             display: block;
-            margin: 5px 0 15px 0;
+            margin: 15px 0;
             background-color: #ffffff;
             border: 2px dashed #10b981;
-            padding: 10px;
+            padding: 15px 10px;
             border-radius: 10px;
+            line-height: 1.4;
+        }
+        .result-time-title {
+            font-size: 1.8rem; /* 時間と同じ大きさに統一 */
+            display: block;
+            margin-bottom: 5px;
+        }
+        .result-time-val {
+            font-size: 1.8rem; /* 時間と同じ大きさに統一 */
+            display: block;
         }
 
         /* 注意事項 */
@@ -270,10 +274,15 @@
         <div id="result-win" class="result-view win-box">
             <div class="result-title win-title">当選</div>
             
-            <!-- 【変更】「ワークショップ参加整理券」と「参加受付時間」を分け、並び順を調整 -->
-            <div class="ticket-banner">ワークショップ参加整理券</div>
-            <div class="ticket-subtitle">参加受付時間</div>
-            <span class="result-time" id="win-time">--:-- 〜</span>
+            <div class="ticket-banner">
+                ワークショップ参加整理券
+            </div>
+            
+            <!-- 【変更】点線枠の中に「参加受付時間：」を、時間と同じオレンジ色・大きさで内包 -->
+            <div class="result-time-container">
+                <span class="result-time-title">参加受付時間</span>
+                <span class="result-time-val" id="win-time">--:-- 〜</span>
+            </div>
 
             <div class="notes-box">
                 <ul>
@@ -306,7 +315,7 @@
         // ==========================================
         // ★ここに取得した「ウェブアプリのURL」を貼り付けてください！
         // ==========================================
-        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxTx1VzLecju0NMANcR1sZYeBbIKt0hMVtNJAdauV8L-PRWvA2XhNgPz77cEs64mZgy5A/exec";
+        const GAS_WEB_APP_URL = "ここにコピーしたウェブアプリのURLを貼り付ける";
 
         // 各時間帯のマスタ定義データ（表示用、受付時間判定用）
         const masterData = [
