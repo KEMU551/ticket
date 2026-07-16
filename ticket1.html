@@ -23,36 +23,89 @@
             background-color: #ffffff;
             border: 3px solid #f59e0b;
             border-radius: 20px;
-            padding: 30px 20px;
+            padding: 25px 15px;
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             box-shadow: 0 10px 20px rgba(245, 158, 11, 0.15);
             box-sizing: border-box;
         }
         h1 {
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             color: #d97706;
             margin-top: 0;
             margin-bottom: 10px;
         }
         .desc {
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             color: #78350f;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             line-height: 1.5;
         }
-        select {
-            width: 100%;
-            padding: 12px;
-            font-size: 1rem;
-            border: 2px solid #f59e0b;
-            border-radius: 10px;
-            background-color: #fffbeb;
-            color: #78350f;
-            font-weight: bold;
+        
+        /* 時間帯一覧リスト */
+        .time-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
             margin-bottom: 20px;
-            outline: none;
+            text-align: left;
         }
+        
+        /* 各時間帯の選択肢カード */
+        .time-item {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 12px 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            background-color: #f9fafb;
+        }
+        .time-item.selected {
+            border-color: #f59e0b;
+            background-color: #fffbeb;
+            box-shadow: 0 0 0 1px #f59e0b;
+        }
+        .time-item.selected .time-title {
+            color: #b45309;
+        }
+        
+        /* 受付終了・時間外のグレーアウト表示 */
+        .time-item.disabled {
+            border-color: #e5e7eb;
+            background-color: #f3f4f6;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .time-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #374151;
+            margin: 0 0 4px 0;
+        }
+        .time-meta {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin: 0;
+        }
+        
+        /* バッジ（受付中、受付終了など） */
+        .badge {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8rem;
+            font-weight: bold;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        .badge-active { background-color: #d1fae5; color: #065f46; }
+        .badge-closed { background-color: #fee2e2; color: #991b1b; }
+        .badge-waiting { background-color: #f3f4f6; color: #4b5563; }
+
+        /* 抽選するボタン */
         .btn-draw {
             width: 100%;
             padding: 15px;
@@ -69,6 +122,14 @@
         .btn-draw:hover {
             background-color: #b45309;
         }
+        .btn-draw:disabled {
+            background-color: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* ローディング */
         .loading-container {
             display: none;
             flex-direction: column;
@@ -76,181 +137,121 @@
             margin: 20px 0;
         }
         .spinner {
-            width: 80px; height: 80px;
-            border: 8px solid rgba(245, 158, 11, 0.2);
-            border-top: 8px solid #d97706;
+            width: 70px; height: 70px;
+            border: 7px solid rgba(245, 158, 11, 0.2);
+            border-top: 7px solid #d97706;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* 結果画面（v11と同じカラーリング仕様） */
-        .overlay-screen {
+        /* 結果画面 */
+        .result-view {
             display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            z-index: 10;
-            padding: 20px;
-            box-sizing: border-box;
+            border-radius: 15px;
+            padding: 25px 15px;
+            margin-top: 10px;
+            text-align: center;
         }
-        .win-bg { background-color: #ecfdf5; border: 5px solid #10b981; color: #065f46; }
-        .lose-bg { background-color: #fff5f5; border: 5px solid #f87171; color: #991b1b; }
+        .win-box { background-color: #ecfdf5; border: 3px solid #10b981; color: #065f46; }
+        .lose-box { background-color: #fff5f5; border: 3px solid #f87171; color: #991b1b; }
         
-        .result-title { font-size: 2.4rem; font-weight: bold; margin-bottom: 20px; text-align: center; line-height: 1.3; }
-        .win-text { color: #047857; }
-        .lose-text { color: #dc2626; }
+        .result-title { font-size: 1.8rem; font-weight: bold; margin-bottom: 15px; line-height: 1.3; }
+        .win-title { color: #047857; }
+        .lose-title { color: #dc2626; }
         
-        .info-text { font-size: 1.4rem; margin: 10px 0; line-height: 1.6; text-align: center; }
-        .win-bg .info-text { color: #065f46; }
-        .lose-bg .info-text { color: #7f1d1d; }
-        
-        .seat-text { font-size: 1.1rem; color: #065f46; margin-top: 30px; text-align: center; font-weight: bold; }
-        .tap-to-close { margin-top: 40px; color: #6b7280; font-size: 0.9rem; }
+        .result-meta { font-size: 1.1rem; margin: 10px 0; line-height: 1.5; }
+        .result-time {
+            color: #b45309; 
+            font-weight: bold; 
+            font-size: 1.8rem;
+            display: block;
+            margin: 15px 0;
+        }
+        .result-seat { 
+            font-size: 1.1rem; 
+            color: #065f46; 
+            font-weight: bold; 
+            background-color: #ffffff;
+            border: 2px dashed #10b981;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
 
         .ticket-id {
             font-size: 0.75rem;
             color: #9ca3af;
-            margin-top: 20px;
+            margin-top: 25px;
             font-family: monospace;
         }
     </style>
 </head>
 <body>
 
-    <div id="main-card" class="card">
-        <h1>デジタル抽選</h1>
+    <div class="card">
+        <h1 id="app-title">デジタル抽選</h1>
         
-        <div id="setup-view">
-            <p class="desc">ご希望の時間帯を選択して、<br>「抽選を引く」ボタンを押してください。<br>※お一人様一回限りです。</p>
-            <select id="time-select">
-                <option value="0">11:00～12:00（受付: 09:45〜10:45）</option>
-                <option value="1">12:00～13:00（受付: 09:45〜11:45）</option>
-                <option value="2">14:00～15:00（受付: 09:45〜13:45）</option>
-                <option value="3">15:00～16:00（受付: 09:45〜14:45）</option>
-                <option value="4">16:00～16:45（受付: 09:45〜15:45）</option>
-            </select>
-            <button class="btn-draw" onclick="drawLottery()">抽選を引く</button>
+        <div id="setup-view" style="display: none;">
+            <p class="desc">ご希望の時間帯をタップして選択し、<br>「抽選を引く」ボタンを押してください。<br>※お一人様一回限りです。</p>
+            
+            <div class="time-list" id="time-list-container">
+                </div>
+            
+            <button class="btn-draw" id="btn-draw-submit" onclick="drawLottery()" disabled>時間帯を選択してください</button>
         </div>
 
-        <div id="loading-view" class="loading-container">
+        <div id="loading-view" class="loading-container" style="display: flex;">
             <div class="spinner"></div>
-            <p style="color: #b45309; font-weight: bold; font-size: 1.5rem;">抽選中・・・</p>
+            <p id="loading-text" style="color: #b45309; font-weight: bold; font-size: 1.2rem; margin: 0;">空き状況を取得中・・・</p>
+        </div>
+
+        <div id="result-win" class="result-view win-box">
+            <div class="result-title win-title">🎉 当選おめでとうございます！</div>
+            <div class="result-meta">
+                時間帯：<span id="win-label" style="font-weight: bold;">--:--</span>
+                <span class="result-time" id="win-time">--:-- 〜</span>
+                <div class="result-seat" id="win-seat">管理用：--</div>
+            </div>
+            <p style="font-size: 0.85rem; margin-top: 20px; color: #047857;">※この画面をスタッフへご提示ください</p>
+        </div>
+
+        <div id="result-lose" class="result-view lose-box">
+            <div class="result-title lose-title">😢 残念ながら落選です</div>
+            <p class="result-meta">ご希望の時間帯はお取りできませんでした。<br>またのご参加をお待ちしております。</p>
         </div>
 
         <div class="ticket-id" id="ticket-id-display"></div>
     </div>
 
-    <div id="result-screen" class="overlay-screen" onclick="closeResult()">
-        <div class="result-title" id="result-title"></div>
-        <div class="info-text" id="result-meta"></div>
-        <div class="seat-text" id="result-seat"></div>
-        <div class="tap-to-close">画面をタップして閉じる</div>
-    </div>
-
-    <audio id="sound-win" src="win.mp3"></audio>
-    <audio id="sound-lose" src="lose.mp3"></audio>
-
     <script>
         // ==========================================
-        // 【v11完全移植】マスタデータ定義と枠生成処理
+        // ★ここに取得した「ウェブアプリのURL」を貼り付けてください！
         // ==========================================
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxTx1VzLecju0NMANcR1sZYeBbIKt0hMVtNJAdauV8L-PRWvA2XhNgPz77cEs64mZgy5A/exec;
+
+        // 各時間帯のマスタ定義データ（表示用、受付時間判定用）
         const masterData = [
-            { id: 0, label: "11:00～12:00", startRec: "09:45", endRec: "10:45", startWs: "11:00", endWs: "12:00" },
-            { id: 1, label: "12:00～13:00", startRec: "09:45", endRec: "11:45", startWs: "12:00", endWs: "13:00" },
-            { id: 2, label: "14:00～15:00", startRec: "09:45", endRec: "13:45", startWs: "14:00", endWs: "15:00" },
-            { id: 3, label: "15:00～16:00", startRec: "09:45", endRec: "14:45", startWs: "15:00", endWs: "16:00" },
-            { id: 4, label: "16:00～16:45", startRec: "09:45", endRec: "15:45", startWs: "16:00", endWs: "16:45" }
+            { id: 0, label: "11:00～12:00", startRec: "09:45", endRec: "10:45" },
+            { id: 1, label: "12:00～13:00", startRec: "09:45", endRec: "11:45" },
+            { id: 2, label: "14:00～15:00", startRec: "09:45", endRec: "13:45" },
+            { id: 3, label: "15:00～16:00", startRec: "09:45", endRec: "14:45" },
+            { id: 4, label: "16:00～16:45", startRec: "09:45", endRec: "15:45" }
         ];
 
-        const STORAGE_KEY_STATUS = "workshop_lottery_status"; // 'none', 'win', 'lose'
+        const STORAGE_KEY_STATUS = "workshop_lottery_status"; 
         const STORAGE_KEY_TIME = "workshop_lottery_time";
+        const STORAGE_KEY_SLOT_TIME = "workshop_lottery_slot_time";
         const STORAGE_KEY_SEAT = "workshop_lottery_seat";
         const STORAGE_KEY_ID = "workshop_user_ticket_id";
 
-        // 時間枠（席）の自動生成（v11と全く同じロジック）
-        function generateSlots(startTimeStr, endTimeStr) {
-            let slots = [];
-            let current = new Date(`2026/01/01 ${startTimeStr}`);
-            const end = new Date(`2026/01/01 ${endTimeStr}`);
-            
-            while (current < end) {
-                const timeStr = current.toTimeString().substring(0, 5);
-                slots.push({ time: timeStr, name: "1人目" });
-                slots.push({ time: timeStr, name: "2人目" });
-                current.setMinutes(current.getMinutes() + 15);
-            }
-            return slots; 
-        }
+        let userTicketId = "";
+        let selectedId = null; // 現在選ばれている時間帯のID
 
-        // タイムスタンプ（当たり時刻リスト）の生成（v11と全く同じロジック）
-        function generateWinTimestamps(item, totalCapacity) {
-            const todayStr = new Date().toLocaleDateString('en-US');
-            const startRecTime = new Date(`${todayStr} ${item.startRec}`).getTime();
-            const endRecTime = new Date(`${todayStr} ${item.endRec}`).getTime();
-            
-            const tenMinutesMs = 10 * 60 * 1000;
-            const lastSlotTime = endRecTime - tenMinutesMs;
-            
-            let timestamps = [];
-
-            if (totalCapacity > 1) {
-                const interval = (lastSlotTime - startRecTime) / (totalCapacity - 1);
-                for (let i = 0; i < totalCapacity - 1; i++) {
-                    const stepTime = startRecTime + (interval * i);
-                    timestamps.push(stepTime);
-                }
-                timestamps.push(lastSlotTime);
-            } else {
-                timestamps.push(startRecTime);
-            }
-            return timestamps;
-        }
-
-        // ==========================================
-        // メイン抽選ロジック
-        // ==========================================
-        function executeLottery(patternId) {
-            const now = new Date().getTime();
-            const targetPattern = masterData.find(item => item.id === patternId);
-            const slots = generateSlots(targetPattern.startWs, targetPattern.endWs);
-            const winTimestamps = generateWinTimestamps(targetPattern, slots.length);
-
-            // 現時刻までに「解放（当選）して良いはず」の最大当選枠数を割り出す
-            let releasedCount = 0;
-            winTimestamps.forEach(time => {
-                if (now >= time) releasedCount++;
-            });
-
-            // 【重要】
-            // スタッフ用端末が無いため、他人の当選をリアルタイムに集計できません。
-            // そのため、タイムスタンプによって現時点で解放されている「確率」に疑似変換して判定します。
-            // これにより、早く引きすぎた場合は絶対に当選せず、時間経過に合わせて枠が等間隔で確実に解放されていきます。
-            const ratio = releasedCount / slots.length; 
-            const isWin = Math.random() < ratio;
-
-            if (isWin && releasedCount > 0) {
-                // 当選した場合は、現在解放されているスロットの中からランダム、または進行に合わせたインデックスの席を割り当てる
-                const slotIndex = Math.min(releasedCount - 1, slots.length - 1);
-                const assignedSlot = slots[slotIndex];
-                
-                localStorage.setItem(STORAGE_KEY_STATUS, 'win');
-                localStorage.setItem(STORAGE_KEY_TIME, targetPattern.label);
-                localStorage.setItem(STORAGE_KEY_SEAT, `当選時間: ${assignedSlot.time} 〜 (${assignedSlot.name})`);
-                
-                showResult(true, assignedSlot.time, assignedSlot.name, targetPattern.label);
-            } else {
-                localStorage.setItem(STORAGE_KEY_STATUS, 'lose');
-                showResult(false, null, null, null);
-            }
-        }
-
-        // ページ読み込み時に既に引いているかチェック
         window.onload = function() {
-            let userTicketId = localStorage.getItem(STORAGE_KEY_ID);
+            // ユーザーIDの設定
+            userTicketId = localStorage.getItem(STORAGE_KEY_ID);
             if (!userTicketId) {
                 const randomStr = Math.random().toString(36).substring(2, 10).toUpperCase();
                 const timestamp = Date.now();
@@ -259,91 +260,171 @@
             }
             document.getElementById('ticket-id-display').textContent = `ID: ${userTicketId}`;
 
+            // 抽選ステータスを確認
             const status = localStorage.getItem(STORAGE_KEY_STATUS);
             if (status === 'win') {
                 const savedTime = localStorage.getItem(STORAGE_KEY_TIME);
+                const savedSlotTime = localStorage.getItem(STORAGE_KEY_SLOT_TIME);
                 const savedSeat = localStorage.getItem(STORAGE_KEY_SEAT);
-                // すでに当選している場合は当選画面を固定表示
-                showSavedResult(true, savedTime, savedSeat);
+                showFinalResult(true, savedTime, savedSlotTime, savedSeat);
             } else if (status === 'lose') {
-                // すでに落選している場合は落選画面を固定表示
-                showSavedResult(false, null, null);
+                showFinalResult(false);
+            } else {
+                // まだ抽選していない場合は、サーバーから現在の空き状況を取得する
+                fetchCurrentStatus();
             }
         };
 
-        // 抽選ボタン起動
+        // サーバー（GAS）からスプレッドシートの登録者データを取得し、画面を描画
+        function fetchCurrentStatus() {
+            // GASウェブアプリの「doGet」を叩いて状況を取得
+            fetch(GAS_WEB_APP_URL)
+            .then(response => {
+                // もしdoGetが文字列しか返さない場合の保険として、直接GASに最新の空き状況を問い合わせる
+                // ※このフェッチが動くように、ステップ1で作ったGAS側のdoGetを一部拡張するとよりスムーズです（後述）
+                return fetch(GAS_WEB_APP_URL + "?action=status");
+            })
+            .then(response => response.json())
+            .then(serverData => {
+                renderTimeList(serverData);
+            })
+            .catch(error => {
+                console.warn("空き状況のリアルタイム取得に失敗しました。ローカル時間で判定して表示します。", error);
+                // 通信エラーでも動くよう、ローカルの時刻判定だけで一覧を描画
+                renderTimeList(null);
+            });
+        }
+
+        // 時間帯一覧リストを画面に組み立てる
+        function renderTimeList(serverData) {
+            const container = document.getElementById('time-list-container');
+            container.innerHTML = ""; // 初期化
+
+            const now = new Date();
+            const todayStr = now.toLocaleDateString('en-US');
+
+            masterData.forEach(item => {
+                const startRecTime = new Date(`${todayStr} ${item.startRec}`).getTime();
+                const endRecTime = new Date(`${todayStr} ${item.endRec}`).getTime();
+                const nowTime = now.getTime();
+
+                let isTimeOut = (nowTime < startRecTime || nowTime > endRecTime);
+                let isFull = false;
+
+                // サーバーデータがある場合、満員かどうかチェック
+                if (serverData && serverData.success && serverData.list) {
+                    const matched = serverData.list.find(s => s.id === item.id);
+                    if (matched && matched.registered >= matched.capacity) {
+                        isFull = true;
+                    }
+                }
+
+                // 時間帯カードのHTML組み立て
+                const div = document.createElement('div');
+                div.className = "time-item";
+                
+                let badgeHtml = "";
+                let statusClass = "";
+
+                if (isTimeOut) {
+                    div.classList.add('disabled');
+                    badgeHtml = `<span class="badge badge-waiting">受付時間外</span>`;
+                } else if (isFull) {
+                    div.classList.add('disabled');
+                    badgeHtml = `<span class="badge badge-closed">受付終了 (満員)</span>`;
+                } else {
+                    // 受付可能枠
+                    badgeHtml = `<span class="badge badge-active">受付中</span>`;
+                    div.onclick = function() { selectTime(item.id, div); };
+                }
+
+                div.innerHTML = `
+                    <p class="time-title">${item.label}</p>
+                    <p class="time-meta">（受付時間：${item.startRec} 〜 ${item.endRec}）</p>
+                    ${badgeHtml}
+                `;
+                container.appendChild(div);
+            });
+
+            // ローディングを消してメイン画面を表示
+            document.getElementById('loading-view').style.display = 'none';
+            document.getElementById('setup-view').style.display = 'block';
+        }
+
+        // 時間帯カードを選択した時のハイライト制御
+        function selectTime(id, element) {
+            // 一旦すべてのカードからselectedクラスを外す
+            const items = document.querySelectorAll('.time-item');
+            items.forEach(item => item.classList.remove('selected'));
+
+            // クリックされたカードにselectedクラスを付与
+            element.classList.add('selected');
+            selectedId = id;
+
+            // 「抽選を引く」ボタンを活性化
+            const btn = document.getElementById('btn-draw-submit');
+            btn.disabled = false;
+            btn.textContent = "抽選を引く";
+        }
+
+        // 抽選実行
         function drawLottery() {
+            if (selectedId === null) return;
+
             document.getElementById('setup-view').style.display = 'none';
+            document.getElementById('loading-text').textContent = "抽選をおこなっています・・・";
             document.getElementById('loading-view').style.display = 'flex';
 
-            // 2.5秒のローディング演出（v11と全く同一）
-            setTimeout(() => {
+            fetch(GAS_WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    id: selectedId,
+                    userId: userTicketId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
                 document.getElementById('loading-view').style.display = 'none';
-                const selectEl = document.getElementById('time-select');
-                executeLottery(parseInt(selectEl.value));
-            }, 2500);
-        }
 
-        // 結果画面の表示（v11と同じカラー、サイズ）
-        function showResult(isWin, slotTime, slotName, label) {
-            const screen = document.getElementById('result-screen');
-            const title = document.getElementById('result-title');
-            const meta = document.getElementById('result-meta');
-            const seat = document.getElementById('result-seat');
+                if (!data.success) {
+                    alert("通信エラー: " + (data.message || "もう一度お試しください。"));
+                    document.getElementById('setup-view').style.display = 'block';
+                    return;
+                }
 
-            if (isWin) {
-                screen.className = 'overlay-screen win-bg';
-                title.textContent = 'おめでとうございます！';
-                title.className = 'result-title win-text';
-                meta.innerHTML = `時間帯 【${label}】 に当選しました！<br><span style="color:#b45309; font-weight:bold; font-size:2.2rem;">参加時間：${slotTime} 〜</span>`;
-                seat.textContent = `管理用：${slotName}`;
-                document.getElementById('sound-win').play().catch(()=>{});
-            } else {
-                screen.className = 'overlay-screen lose-bg';
-                title.textContent = 'ご希望のコンテンツを\nお取りできませんでした';
-                title.className = 'result-title lose-text';
-                meta.textContent = '';
-                seat.textContent = '';
-                document.getElementById('sound-lose').play().catch(()=>{});
-            }
-            screen.style.display = 'flex';
-        }
-
-        // 保存された結果を再表示する場合
-        function showSavedResult(isWin, label, seatText) {
-            const screen = document.getElementById('result-screen');
-            const title = document.getElementById('result-title');
-            const meta = document.getElementById('result-meta');
-            const seat = document.getElementById('result-seat');
-
-            document.getElementById('setup-view').style.display = 'none';
-
-            if (isWin) {
-                screen.className = 'overlay-screen win-bg';
-                title.textContent = '【当選整理券】';
-                title.className = 'result-title win-text';
-                meta.innerHTML = `時間帯 【${label}】<br><span style="color:#b45309; font-weight:bold; font-size:1.8rem;">${seatText}</span>`;
-                seat.textContent = '※この画面をスタッフへ提示してください';
-            } else {
-                screen.className = 'overlay-screen lose-bg';
-                title.textContent = '抽選結果：落選';
-                title.className = 'result-title lose-text';
-                meta.textContent = 'ご希望の時間帯はお取りできませんでした。';
-                seat.textContent = '';
-            }
-            screen.style.display = 'flex';
-        }
-
-        function closeResult() {
-            const status = localStorage.getItem(STORAGE_KEY_STATUS);
-            if (status === 'win' || status === 'lose') {
-                // すでに結果が出ている場合は、閉じても結果画面が残る（不正に再抽選させないため）
-                const savedTime = localStorage.getItem(STORAGE_KEY_TIME);
-                const savedSeat = localStorage.getItem(STORAGE_KEY_SEAT);
-                showSavedResult(status === 'win', savedTime, savedSeat);
-            } else {
-                document.getElementById('result-screen').style.display = 'none';
+                if (data.isWin) {
+                    const label = masterData.find(item => item.id === selectedId).label;
+                    localStorage.setItem(STORAGE_KEY_STATUS, 'win');
+                    localStorage.setItem(STORAGE_KEY_TIME, label);
+                    localStorage.setItem(STORAGE_KEY_SLOT_TIME, data.slotTime);
+                    localStorage.setItem(STORAGE_KEY_SEAT, data.slotName);
+                    
+                    showFinalResult(true, label, data.slotTime, data.slotName);
+                } else {
+                    localStorage.setItem(STORAGE_KEY_STATUS, 'lose');
+                    showFinalResult(false);
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading-view').style.display = 'none';
                 document.getElementById('setup-view').style.display = 'block';
+                alert("サーバーとの通信に失敗しました。電波の良い場所で再度お試しください。");
+                console.error(error);
+            });
+        }
+
+        function showFinalResult(isWin, label = "", slotTime = "", slotName = "") {
+            document.getElementById('setup-view').style.display = 'none';
+            document.getElementById('loading-view').style.display = 'none';
+            document.getElementById('app-title').style.display = 'none';
+
+            if (isWin) {
+                document.getElementById('win-label').textContent = label;
+                document.getElementById('win-time').textContent = `${slotTime} 〜`;
+                document.getElementById('win-seat').textContent = `当選順：${slotName}`;
+                document.getElementById('result-win').style.display = 'block';
+            } else {
+                document.getElementById('result-lose').style.display = 'block';
             }
         }
     </script>
