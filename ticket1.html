@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ワークショップ抽選システム</title>
+    <title>ワークショップ エントリー受付</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -158,32 +158,80 @@
         .lose-box { background-color: #fff5f5; border: 3px solid #f87171; color: #991b1b; }
         
         .result-title { font-size: 1.8rem; font-weight: bold; margin-bottom: 15px; line-height: 1.3; }
-        .win-title { color: #047857; }
+        .win-title { color: #047857; font-size: 2.2rem; border-bottom: 2px solid #10b981; padding-bottom: 10px; margin-bottom: 20px; }
         .lose-title { color: #dc2626; }
         
+        .ticket-banner {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #065f46;
+            margin: 10px 0;
+            line-height: 1.4;
+        }
+
         .result-meta { font-size: 1.1rem; margin: 10px 0; line-height: 1.5; }
         .result-time {
-            color: #b45309; 
+            color: #d97706; 
             font-weight: bold; 
-            font-size: 1.8rem;
+            font-size: 2.2rem;
             display: block;
             margin: 15px 0;
-        }
-        .result-seat { 
-            font-size: 1.1rem; 
-            color: #065f46; 
-            font-weight: bold; 
             background-color: #ffffff;
             border: 2px dashed #10b981;
             padding: 10px;
+            border-radius: 10px;
+        }
+
+        /* 注意事項 */
+        .notes-box {
+            text-align: left;
+            font-size: 0.85rem;
+            background-color: #ffffff;
+            border: 1px solid #d1fae5;
+            padding: 15px;
             border-radius: 8px;
             margin-top: 20px;
+            color: #047857;
+            line-height: 1.6;
+        }
+        .notes-box ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .notes-box li {
+            margin-bottom: 8px;
+        }
+        .notes-box li:last-child {
+            margin-bottom: 0;
+        }
+        .notes-alert {
+            font-weight: bold;
+            color: #b45309;
+        }
+
+        /* 落選時の説明文 */
+        .lose-desc {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #991b1b;
+            margin-top: 15px;
+        }
+
+        /* 控えめな管理エリア */
+        .admin-meta {
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-top: 30px;
+            border-top: 1px dashed #e5e7eb;
+            padding-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .ticket-id {
             font-size: 0.75rem;
             color: #9ca3af;
-            margin-top: 25px;
             font-family: monospace;
         }
     </style>
@@ -191,38 +239,61 @@
 <body>
 
     <div class="card">
-        <h1 id="app-title">デジタル抽選</h1>
+        <h1 id="app-title">ワークショップ　エントリー受付</h1>
         
+        <!-- 1. 抽選選択画面 -->
         <div id="setup-view" style="display: none;">
             <p class="desc">ご希望の時間帯をタップして選択し、<br>「抽選を引く」ボタンを押してください。<br>※お一人様一回限りです。</p>
             
+            <!-- 時間帯カードの一覧エリア -->
             <div class="time-list" id="time-list-container">
-                </div>
+                <!-- JavaScriptで時間枠が自動生成されます -->
+            </div>
             
             <button class="btn-draw" id="btn-draw-submit" onclick="drawLottery()" disabled>時間帯を選択してください</button>
         </div>
 
+        <!-- 2. ローディング画面 -->
         <div id="loading-view" class="loading-container" style="display: flex;">
             <div class="spinner"></div>
             <p id="loading-text" style="color: #b45309; font-weight: bold; font-size: 1.2rem; margin: 0;">空き状況を取得中・・・</p>
         </div>
 
+        <!-- 3. 当選画面 -->
         <div id="result-win" class="result-view win-box">
-            <div class="result-title win-title">🎉 当選おめでとうございます！</div>
-            <div class="result-meta">
-                時間帯：<span id="win-label" style="font-weight: bold;">--:--</span>
-                <span class="result-time" id="win-time">--:-- 〜</span>
-                <div class="result-seat" id="win-seat">管理用：--</div>
+            <div class="result-title win-title">当選</div>
+            
+            <div class="ticket-banner">
+                ワークショップ参加整理券<br>
+                参加受付時間
             </div>
-            <p style="font-size: 0.85rem; margin-top: 20px; color: #047857;">※この画面をスタッフへご提示ください</p>
+            <span class="result-time" id="win-time">--:-- 〜</span>
+
+            <div class="notes-box">
+                <ul>
+                    <li>本画面のご提示で1人1回参加できます。</li>
+                    <li>お時間になりましたらワークショップコーナーへお越しいただき、この画面をスタッフへご提示ください。</li>
+                    <li class="notes-alert">ブラウザのこの画面はワークショップ参加まで閉じずに保存してください。エラー等に備え、念のため本画面のスクリーンショットを撮影し、保存してください。ワークショップ参加時には、スクリーンショットではなく、ブラウザ上の本画面を確認いたします。</li>
+                </ul>
+            </div>
+            
+            <!-- 小さく目立たない管理用エリア -->
+            <div class="admin-meta">
+                <span id="win-seat">管理用：--</span>
+                <span id="win-id-display">ID: --</span>
+            </div>
         </div>
 
+        <!-- 4. 落選画面 -->
         <div id="result-lose" class="result-view lose-box">
-            <div class="result-title lose-title">😢 残念ながら落選です</div>
-            <p class="result-meta">ご希望の時間帯はお取りできませんでした。<br>またのご参加をお待ちしております。</p>
+            <div class="result-title lose-title">抽選結果</div>
+            <p class="lose-desc">申し訳ございません。ご希望の時間帯はお取りできませんでした。抽選は1日1回までです</p>
+            
+            <div class="admin-meta" style="justify-content: center;">
+                <span id="lose-id-display">ID: --</span>
+            </div>
         </div>
 
-        <div class="ticket-id" id="ticket-id-display"></div>
     </div>
 
     <script>
@@ -240,8 +311,14 @@
             { id: 4, label: "16:00～16:45", startRec: "09:45", endRec: "15:45" }
         ];
 
-        const STORAGE_KEY_STATUS = "workshop_lottery_status"; 
-        const STORAGE_KEY_TIME = "workshop_lottery_time";
+        // 1日1回制限のための日付管理
+        const getTodayDateString = () => {
+            const d = new Date();
+            return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+        };
+
+        const STORAGE_KEY_DATE = "workshop_lottery_date"; // 最後に引いた日付
+        const STORAGE_KEY_STATUS = "workshop_lottery_status"; // 'win', 'lose'
         const STORAGE_KEY_SLOT_TIME = "workshop_lottery_slot_time";
         const STORAGE_KEY_SEAT = "workshop_lottery_seat";
         const STORAGE_KEY_ID = "workshop_user_ticket_id";
@@ -250,7 +327,10 @@
         let selectedId = null; // 現在選ばれている時間帯のID
 
         window.onload = function() {
-            // ユーザーIDの設定
+            const todayStr = getTodayDateString();
+            const lastActiveDate = localStorage.getItem(STORAGE_KEY_DATE);
+
+            // ユーザーIDの設定（端末ごとに一意に固定、1日1回制限とは別に本人確認用として維持）
             userTicketId = localStorage.getItem(STORAGE_KEY_ID);
             if (!userTicketId) {
                 const randomStr = Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -258,39 +338,38 @@
                 userTicketId = `WS-${randomStr}-${timestamp}`;
                 localStorage.setItem(STORAGE_KEY_ID, userTicketId);
             }
-            document.getElementById('ticket-id-display').textContent = `ID: ${userTicketId}`;
+
+            // 日付が変わっている場合は、ローカルの抽選ステータスをリセット（1日1回抽選可能にする）
+            if (lastActiveDate !== todayStr) {
+                localStorage.removeItem(STORAGE_KEY_STATUS);
+                localStorage.removeItem(STORAGE_KEY_SLOT_TIME);
+                localStorage.removeItem(STORAGE_KEY_SEAT);
+                // STORAGE_KEY_DATE は抽選実行時に保存します
+            }
 
             // 抽選ステータスを確認
             const status = localStorage.getItem(STORAGE_KEY_STATUS);
             if (status === 'win') {
-                const savedTime = localStorage.getItem(STORAGE_KEY_TIME);
                 const savedSlotTime = localStorage.getItem(STORAGE_KEY_SLOT_TIME);
                 const savedSeat = localStorage.getItem(STORAGE_KEY_SEAT);
-                showFinalResult(true, savedTime, savedSlotTime, savedSeat);
+                showFinalResult(true, savedSlotTime, savedSeat);
             } else if (status === 'lose') {
                 showFinalResult(false);
             } else {
-                // まだ抽選していない場合は、サーバーから現在の空き状況を取得する
+                // まだ本日抽選していない場合は、サーバーから現在の空き状況を取得する
                 fetchCurrentStatus();
             }
         };
 
-        // サーバー（GAS）からスプレッドシートの登録者データを取得し、画面を描画
+        // サーバー（GAS）からデータを取得し、画面を描画
         function fetchCurrentStatus() {
-            // GASウェブアプリの「doGet」を叩いて状況を取得
-            fetch(GAS_WEB_APP_URL)
-            .then(response => {
-                // もしdoGetが文字列しか返さない場合の保険として、直接GASに最新の空き状況を問い合わせる
-                // ※このフェッチが動くように、ステップ1で作ったGAS側のdoGetを一部拡張するとよりスムーズです（後述）
-                return fetch(GAS_WEB_APP_URL + "?action=status");
-            })
+            fetch(GAS_WEB_APP_URL + "?action=status")
             .then(response => response.json())
             .then(serverData => {
                 renderTimeList(serverData);
             })
             .catch(error => {
                 console.warn("空き状況のリアルタイム取得に失敗しました。ローカル時間で判定して表示します。", error);
-                // 通信エラーでも動くよう、ローカルの時刻判定だけで一覧を描画
                 renderTimeList(null);
             });
         }
@@ -309,31 +388,18 @@
                 const nowTime = now.getTime();
 
                 let isTimeOut = (nowTime < startRecTime || nowTime > endRecTime);
-                let isFull = false;
-
-                // サーバーデータがある場合、満員かどうかチェック
-                if (serverData && serverData.success && serverData.list) {
-                    const matched = serverData.list.find(s => s.id === item.id);
-                    if (matched && matched.registered >= matched.capacity) {
-                        isFull = true;
-                    }
-                }
 
                 // 時間帯カードのHTML組み立て
                 const div = document.createElement('div');
                 div.className = "time-item";
                 
                 let badgeHtml = "";
-                let statusClass = "";
 
                 if (isTimeOut) {
                     div.classList.add('disabled');
                     badgeHtml = `<span class="badge badge-waiting">受付時間外</span>`;
-                } else if (isFull) {
-                    div.classList.add('disabled');
-                    badgeHtml = `<span class="badge badge-closed">受付終了 (満員)</span>`;
                 } else {
-                    // 受付可能枠
+                    // 【新仕様】当選者が全員出ても、受付終了時間までは「受付中」にする
                     badgeHtml = `<span class="badge badge-active">受付中</span>`;
                     div.onclick = function() { selectTime(item.id, div); };
                 }
@@ -353,15 +419,12 @@
 
         // 時間帯カードを選択した時のハイライト制御
         function selectTime(id, element) {
-            // 一旦すべてのカードからselectedクラスを外す
             const items = document.querySelectorAll('.time-item');
             items.forEach(item => item.classList.remove('selected'));
 
-            // クリックされたカードにselectedクラスを付与
             element.classList.add('selected');
             selectedId = id;
 
-            // 「抽選を引く」ボタンを活性化
             const btn = document.getElementById('btn-draw-submit');
             btn.disabled = false;
             btn.textContent = "抽選を引く";
@@ -372,7 +435,7 @@
             if (selectedId === null) return;
 
             document.getElementById('setup-view').style.display = 'none';
-            document.getElementById('loading-text').textContent = "抽選をおこなっています・・・";
+            document.getElementById('loading-text').textContent = "抽選中・・・";
             document.getElementById('loading-view').style.display = 'flex';
 
             fetch(GAS_WEB_APP_URL, {
@@ -392,14 +455,15 @@
                     return;
                 }
 
+                // 抽選を行った日付を保存（1日1回制限のため）
+                localStorage.setItem(STORAGE_KEY_DATE, getTodayDateString());
+
                 if (data.isWin) {
-                    const label = masterData.find(item => item.id === selectedId).label;
                     localStorage.setItem(STORAGE_KEY_STATUS, 'win');
-                    localStorage.setItem(STORAGE_KEY_TIME, label);
                     localStorage.setItem(STORAGE_KEY_SLOT_TIME, data.slotTime);
                     localStorage.setItem(STORAGE_KEY_SEAT, data.slotName);
                     
-                    showFinalResult(true, label, data.slotTime, data.slotName);
+                    showFinalResult(true, data.slotTime, data.slotName);
                 } else {
                     localStorage.setItem(STORAGE_KEY_STATUS, 'lose');
                     showFinalResult(false);
@@ -413,17 +477,18 @@
             });
         }
 
-        function showFinalResult(isWin, label = "", slotTime = "", slotName = "") {
+        function showFinalResult(isWin, slotTime = "", slotName = "") {
             document.getElementById('setup-view').style.display = 'none';
             document.getElementById('loading-view').style.display = 'none';
             document.getElementById('app-title').style.display = 'none';
 
             if (isWin) {
-                document.getElementById('win-label').textContent = label;
                 document.getElementById('win-time').textContent = `${slotTime} 〜`;
                 document.getElementById('win-seat').textContent = `当選順：${slotName}`;
+                document.getElementById('win-id-display').textContent = `ID: ${userTicketId}`;
                 document.getElementById('result-win').style.display = 'block';
             } else {
+                document.getElementById('lose-id-display').textContent = `ID: ${userTicketId}`;
                 document.getElementById('result-lose').style.display = 'block';
             }
         }
