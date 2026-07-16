@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>抽選参加デジタルチケット</title>
+    <title>ワークショップ抽選システム</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -13,18 +13,21 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
             text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
         }
         .card {
             background-color: #ffffff;
             border: 3px solid #f59e0b;
             border-radius: 20px;
             padding: 30px 20px;
-            width: 85%;
+            width: 100%;
             max-width: 400px;
             box-shadow: 0 10px 20px rgba(245, 158, 11, 0.15);
+            box-sizing: border-box;
         }
         h1 {
             font-size: 1.8rem;
@@ -38,21 +41,87 @@
             margin-bottom: 25px;
             line-height: 1.5;
         }
-        #qrcode-container {
-            display: flex;
-            justify-content: center;
-            margin: 20px 0;
-            min-height: 200px;
+        /* セレクトボックスの装飾 */
+        select {
+            width: 100%;
+            padding: 12px;
+            font-size: 1rem;
+            border: 2px solid #f59e0b;
+            border-radius: 10px;
+            background-color: #fffbeb;
+            color: #78350f;
+            font-weight: bold;
+            margin-bottom: 20px;
+            outline: none;
         }
-        #qrcode-canvas {
-            border: 8px solid #fff;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-            background-color: #fff;
+        /* 抽選ボタン */
+        .btn-draw {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background-color: #d97706;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(217, 119, 6, 0.2);
+            transition: background 0.2s;
+        }
+        .btn-draw:hover {
+            background-color: #b45309;
+        }
+        /* 演出アニメーション */
+        .loading-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            width: 50px; height: 50px;
+            border: 5px solid rgba(245, 158, 11, 0.2);
+            border-top: 5px solid #d97706;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* 結果表示用の枠 */
+        .result-box {
+            display: none;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 15px;
+            text-align: center;
+        }
+        .win-box {
+            background-color: #ecfdf5;
+            border: 3px solid #10b981;
+            color: #065f46;
+        }
+        .lose-box {
+            background-color: #fff5f5;
+            border: 3px solid #f87171;
+            color: #991b1b;
+        }
+        .result-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .result-time {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #10b981;
+            margin: 15px 0;
+            display: block;
         }
         .ticket-id {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: #9ca3af;
-            margin-top: 15px;
+            margin-top: 20px;
             font-family: monospace;
         }
     </style>
@@ -60,345 +129,117 @@
 <body>
 
     <div class="card">
-        <h1>デジタル抽選チケット</h1>
-        <p class="desc">スタッフの端末（iPad）に<br>このQRコードをかざしてください。</p>
+        <h1>デジタル抽選</h1>
         
-        <div id="qrcode-container">
-            <canvas id="qrcode-canvas" width="200" height="200"></canvas>
+        <div id="setup-view">
+            <p class="desc">ご希望の時間帯を選択して、<br>「抽選を引く」ボタンを押してください。<br>※お一人様一回限りです。</p>
+            <select id="time-select">
+                <option value="0">11:00～12:00（受付: 09:45〜10:45）</option>
+                <option value="1">12:00～13:00（受付: 09:45〜11:45）</option>
+                <option value="2">14:00～15:00（受付: 09:45〜13:45）</option>
+                <option value="3">15:00～16:00（受付: 09:45〜14:45）</option>
+                <option value="4">16:00～16:45（受付: 09:45〜15:45）</option>
+            </select>
+            <button class="btn-draw" onclick="drawLottery()">抽選を引く</button>
         </div>
-        
+
+        <div id="loading-view" class="loading-container">
+            <div class="spinner"></div>
+            <p style="color: #d97706; font-weight: bold;">抽選をしています...</p>
+        </div>
+
+        <div id="result-win" class="result-box win-box">
+            <div class="result-title">🎉 見事当選しました！</div>
+            <p>ワークショップ参加整理券</p>
+            <span class="result-time" id="win-time-display">--:-- 〜</span>
+            <p style="font-size: 0.9rem; margin-bottom: 0;">この画面をスタッフへお見せください。</p>
+        </div>
+
+        <div id="result-lose" class="result-box lose-box">
+            <div class="result-title">😢 残念ながら落選です</div>
+            <p>ご希望の時間帯はお取りできませんでした。<br>またの機会をお待ちしております。</p>
+        </div>
+
         <div class="ticket-id" id="ticket-id-display"></div>
     </div>
 
     <script>
-        // ==========================================
-        // 【完全自己完結型】超軽量QRコード生成エンジン
-        // 外部サーバー・CDNから一切データを読み込まず、JSだけでQRを作ります。
-        // ==========================================
-        const QRCodeGenerator = (function() {
-            const PAD0 = 0xEC, PAD1 = 0x11;
-            function QRCode(typeNumber, errorCorrectionLevel) {
-                this.typeNumber = typeNumber;
-                this.errorCorrectionLevel = errorCorrectionLevel;
-                this.modules = null;
-                this.moduleCount = 0;
-                this.dataCache = null;
-                this.dataList = [];
+        // 定数設定（当選確率：例として 25% に設定）
+        const WIN_PROBABILITY = 0.25; 
+
+        const STORAGE_KEY_STATUS = "workshop_lottery_status"; // 'none', 'win', 'lose'
+        const STORAGE_KEY_TIME = "workshop_lottery_time";
+        const STORAGE_KEY_ID = "workshop_user_ticket_id";
+
+        const timeLabels = [
+            "11:00～12:00",
+            "12:00～13:00",
+            "14:00～15:00",
+            "15:00～16:00",
+            "16:00～16:45"
+        ];
+
+        // ページ読み込み時の状態確認
+        window.onload = function() {
+            let userTicketId = localStorage.getItem(STORAGE_KEY_ID);
+            if (!userTicketId) {
+                const randomStr = Math.random().toString(36).substring(2, 10).toUpperCase();
+                const timestamp = Date.now();
+                userTicketId = `WS-${randomStr}-${timestamp}`;
+                localStorage.setItem(STORAGE_KEY_ID, userTicketId);
             }
-            QRCode.prototype = {
-                addData: function(data) { this.dataList.push(new QR8bitByte(data)); this.dataCache = null; },
-                isDark: function(row, col) { return this.modules[row][col]; },
-                getModuleCount: function() { return this.moduleCount; },
-                make: function() { this.makeImpl(false, this.getBestMaskPattern()); },
-                makeImpl: function(test, maskPattern) {
-                    this.moduleCount = this.typeNumber * 4 + 17;
-                    this.modules = new Array(this.moduleCount);
-                    for (let row = 0; row < this.moduleCount; row++) {
-                        this.modules[row] = new Array(this.moduleCount);
-                        for (let col = 0; col < this.moduleCount; col++) { this.modules[row][col] = null; }
-                    }
-                    this.setupPositionProbePattern(0, 0);
-                    this.setupPositionProbePattern(this.moduleCount - 7, 0);
-                    this.setupPositionProbePattern(0, this.moduleCount - 7);
-                    this.setupPositionAdjustPattern();
-                    this.setupTimingPattern();
-                    this.setupTypeInfo(test, maskPattern);
-                    if (this.typeNumber >= 7) { this.setupTypeNumber(test); }
-                    if (this.dataCache == null) { this.dataCache = QRCode.createData(this.typeNumber, this.errorCorrectionLevel, this.dataList); }
-                    this.mapData(this.dataCache, maskPattern);
-                },
-                setupPositionProbePattern: function(row, col) {
-                    for (let r = -1; r <= 7; r++) {
-                        if (row + r <= -1 || this.moduleCount <= row + r) continue;
-                        for (let c = -1; c <= 7; c++) {
-                            if (col + c <= -1 || this.moduleCount <= col + c) continue;
-                            if ((0 <= r && r <= 6 && (r == 0 || r == 6)) || (0 <= c && c <= 6 && (c == 0 || c == 6)) || (2 <= r && r <= 4 && 2 <= c && c <= 4)) {
-                                this.modules[row + r][col + c] = true;
-                            } else { this.modules[row + r][col + c] = false; }
-                        }
-                    }
-                },
-                getBestMaskPattern: function() { return 0; }, // 簡易版マスク固定
-                setupTimingPattern: function() {
-                    for (let i = 8; i < this.moduleCount - 8; i++) {
-                        if (this.modules[i][6] != null || this.modules[6][i] != null) continue;
-                        this.modules[i][6] = (i % 2 == 0);
-                        this.modules[6][i] = (i % 2 == 0);
-                    }
-                },
-                setupPositionAdjustPattern: function() {
-                    const pos = QRUtil.getPatternPosition(this.typeNumber);
-                    for (let i = 0; i < pos.length; i++) {
-                        for (let j = 0; j < pos.length; j++) {
-                            const row = pos[i], col = pos[j];
-                            if (this.modules[row][col] != null) continue;
-                            for (let r = -2; r <= 2; r++) {
-                                for (let c = -2; c <= 2; c++) {
-                                    if (Math.abs(r) == 2 || Math.abs(c) == 2 || (r == 0 && c == 0)) {
-                                        this.modules[row + r][col + c] = true;
-                                    } else { this.modules[row + r][col + c] = false; }
-                                }
-                            }
-                        }
-                    }
-                },
-                setupTypeInfo: function(test, maskPattern) {
-                    const data = (QRMode.ERROR_CORRECT_LEVEL_H << 3) | maskPattern;
-                    const bits = QRUtil.getBCHTypeInfo(data);
-                    for (let i = 0; i < 15; i++) {
-                        const mod = (!test && ((bits >> i) & 1) == 1);
-                        if (i < 6) { this.modules[i][8] = mod; } 
-                        else if (i < 8) { this.modules[i + 1][8] = mod; } 
-                        else { this.modules[this.moduleCount - 15 + i][8] = mod; }
-                    }
-                    for (let i = 0; i < 15; i++) {
-                        const mod = (!test && ((bits >> i) & 1) == 1);
-                        if (i < 8) { this.modules[8][this.moduleCount - i - 1] = mod; } 
-                        else if (i < 9) { this.modules[8][15 - i - 1 + 1] = mod; } 
-                        else { this.modules[8][15 - i - 1] = mod; }
-                    }
-                    this.modules[this.moduleCount - 8][8] = (!test);
-                },
-                setupTypeNumber: function(test) { return; },
-                mapData: function(data, maskPattern) {
-                    let inc = -1, row = this.moduleCount - 1, bitIndex = 7, byteIndex = 0;
-                    for (let col = this.moduleCount - 1; col > 0; col -= 2) {
-                        if (col == 6) col--;
-                        while (true) {
-                            for (let c = 0; c < 2; c++) {
-                                const currentCol = col - c;
-                                if (this.modules[row][currentCol] == null) {
-                                    let dark = false;
-                                    if (byteIndex < data.length) {
-                                        dark = (((data[byteIndex] >>> bitIndex) & 1) == 1);
-                                    }
-                                    const mask = QRUtil.getMask(maskPattern, row, currentCol);
-                                    if (mask) { dark = !dark; }
-                                    this.modules[row][currentCol] = dark;
-                                    bitIndex--;
-                                    if (bitIndex == -1) { byteIndex++; bitIndex = 7; }
-                                }
-                            }
-                            row += inc;
-                            if (row < 0 || this.moduleCount <= row) {
-                                row -= inc; inc = -inc; break;
-                            }
-                        }
-                    }
-                }
-            };
-            QRCode.createData = function(typeNumber, errorCorrectionLevel, dataList) {
-                const rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
-                const buffer = new QRBitBuffer();
-                for (let i = 0; i < dataList.length; i++) {
-                    const data = dataList[i];
-                    buffer.put(data.mode, 4);
-                    buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber));
-                    data.write(buffer);
-                }
-                let totalDataCount = 0;
-                for (let i = 0; i < rsBlocks.length; i++) { totalDataCount += rsBlocks[i].dataCount; }
-                if (buffer.getLengthInBits() > totalDataCount * 8) { throw new Error("データ量が大きすぎます"); }
-                if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) { buffer.put(0, 4); }
-                while (buffer.getLengthInBits() % 8 != 0) { buffer.putBit(false); }
-                while (true) {
-                    if (buffer.getLengthInBits() >= totalDataCount * 8) { break; }
-                    buffer.put(PAD0, 8);
-                    if (buffer.getLengthInBits() >= totalDataCount * 8) { break; }
-                    buffer.put(PAD1, 8);
-                }
-                return QRCode.createBytes(buffer, rsBlocks);
-            };
-            QRCode.createBytes = function(buffer, rsBlocks) {
-                let offset = 0, maxDcCount = 0, maxEcCount = 0;
-                const dcData = new Array(rsBlocks.length), ecData = new Array(rsBlocks.length);
-                for (let r = 0; r < rsBlocks.length; r++) {
-                    const dcCount = rsBlocks[r].dataCount, ecCount = rsBlocks[r].totalCount - dcCount;
-                    maxDcCount = Math.max(maxDcCount, dcCount);
-                    maxEcCount = Math.max(maxEcCount, ecCount);
-                    dcData[r] = new Array(dcCount);
-                    for (let i = 0; i < dcData[r].length; i++) { dcData[r][i] = 0xff & buffer.buffer[i + offset]; }
-                    offset += dcCount;
-                    const rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
-                    const rawPoly = new QRPolynomial(dcData[r], rsPoly.getLength() - 1);
-                    const modPoly = rawPoly.mod(rsPoly);
-                    ecData[r] = new Array(rsPoly.getLength() - 1);
-                    for (let i = 0; i < ecData[r].length; i++) {
-                        const modIndex = i + modPoly.getLength() - ecData[r].length;
-                        ecData[r][i] = (modIndex >= 0)? modPoly.get(modIndex) : 0;
-                    }
-                }
-                let totalCodeCount = 0;
-                for (let i = 0; i < rsBlocks.length; i++) { totalCodeCount += rsBlocks[i].totalCount; }
-                const data = new Array(totalCodeCount);
-                let index = 0;
-                for (let i = 0; i < maxDcCount; i++) {
-                    for (let r = 0; r < rsBlocks.length; r++) { if (i < dcData[r].length) { data[index++] = dcData[r][i]; } }
-                }
-                for (let i = 0; i < maxEcCount; i++) {
-                    for (let r = 0; r < rsBlocks.length; r++) { if (i < ecData[r].length) { data[index++] = ecData[r][i]; } }
-                }
-                return data;
-            };
-            const QRMode = { MODE_8BIT_BYTE: 4, ERROR_CORRECT_LEVEL_H: 2 };
-            function QR8bitByte(data) { this.mode = QRMode.MODE_8BIT_BYTE; this.data = data; }
-            QR8bitByte.prototype = {
-                getLength: function() { return this.data.length; },
-                write: function(buffer) {
-                    for (let i = 0; i < this.data.length; i++) { buffer.put(this.data.charCodeAt(i), 8); }
-                }
-            };
-            function QRRSBlock(totalCount, dataCount) { this.totalCount = totalCount; this.dataCount = dataCount; }
-            QRRSBlock.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
-                // H レベル固定テーブル
-                const table = [
-                    [], [17, 9], [34, 16], [58, 26], [82, 36], [106, 46], [139, 60], [168, 66]
-                ];
-                const block = table[typeNumber];
-                if (block) { return [new QRRSBlock(block[0], block[1])]; }
-                throw new Error("非対応のバージョン");
-            };
-            const QRUtil = {
-                getPatternPosition: function(typeNumber) {
-                    if(typeNumber === 4) return [6, 26];
-                    return [6, 20]; // 簡易対応
-                },
-                getMask: function(maskPattern, i, j) {
-                    switch (maskPattern) {
-                        case 0: return (i + j) % 2 == 0;
-                        default: return false;
-                    }
-                },
-                getErrorCorrectPolynomial: function(errorCorrectLength) {
-                    let a = new QRPolynomial([1], 0);
-                    for (let i = 0; i < errorCorrectLength; i++) {
-                        a = a.multiply(new QRPolynomial([1, QRMath.gexp(i)], 0));
-                    }
-                    return a;
-                },
-                getLengthInBits: function(mode, type) { return 8; },
-                getBCHTypeInfo: function(data) {
-                    let d = data << 10;
-                    while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(0x537) >= 0) {
-                        d ^= (0x537 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(0x537)));
-                    }
-                    return ((data << 10) | d) ^ 0x5412;
-                },
-                getBCHDigit: function(data) {
-                    let digit = 0;
-                    while (data != 0) { digit++; data >>>= 1; }
-                    return digit;
-                }
-            };
-            const QRMath = {
-                glog: function(n) { if (n < 1) { throw new Error("glog(" + n + ")"); } return LOG_TABLE[n]; },
-                gexp: function(n) { while (n < 0) { n += 255; } while (n >= 255) { n -= 255; } return EXP_TABLE[n]; }
-            };
-            const EXP_TABLE = new Array(256), LOG_TABLE = new Array(256);
-            for (let i = 0; i < 8; i++) { EXP_TABLE[i] = 1 << i; }
-            for (let i = 8; i < 256; i++) { EXP_TABLE[i] = EXP_TABLE[i - 4] ^ EXP_TABLE[i - 5] ^ EXP_TABLE[i - 6] ^ EXP_TABLE[i - 8]; }
-            for (let i = 0; i < 255; i++) { LOG_TABLE[EXP_TABLE[i]] = i; }
+            document.getElementById('ticket-id-display').textContent = `ID: ${userTicketId}`;
 
-            function QRPolynomial(num, shift) {
-                let offset = 0;
-                while (offset < num.length && num[offset] == 0) { offset++; }
-                this.num = new Array(num.length - offset + shift);
-                for (let i = 0; i < num.length - offset; i++) { this.num[i] = num[i + offset]; }
-                for (let i = num.length - offset; i < this.num.length; i++) { this.num[i] = 0; }
+            const status = localStorage.getItem(STORAGE_KEY_STATUS) || 'none';
+            const selectedTime = localStorage.getItem(STORAGE_KEY_TIME);
+
+            if (status === 'win') {
+                showWinScreen(selectedTime);
+            } else if (status === 'lose') {
+                showLoseScreen();
             }
-            QRPolynomial.prototype = {
-                get: function(index) { return this.num[index]; },
-                getLength: function() { return this.num.length; },
-                multiply: function(e) {
-                    const num = new Array(this.getLength() + e.getLength() - 1);
-                    for (let i = 0; i < this.getLength(); i++) {
-                        for (let j = 0; j < e.getLength(); j++) {
-                            num[i + j] ^= QRMath.gexp(QRMath.glog(this.get(i)) + QRMath.glog(e.get(j)));
-                        }
-                    }
-                    return new QRPolynomial(num, 0);
-                },
-                mod: function(e) {
-                    if (this.getLength() - e.getLength() < 0) { return this; }
-                    const ratio = QRMath.glog(this.get(0)) - QRMath.glog(e.get(0));
-                    const num = new Array(this.getLength());
-                    for (let i = 0; i < this.getLength(); i++) { num[i] = this.get(i); }
-                    for (let i = 0; i < e.getLength(); i++) { num[i] ^= QRMath.gexp(QRMath.glog(e.get(i)) + ratio); }
-                    return new QRPolynomial(num, 0).mod(e);
+        };
+
+        // 抽選ボタンを押したときの処理
+        function drawLottery() {
+            const selectEl = document.getElementById('time-select');
+            const selectedText = timeLabels[selectEl.value];
+
+            // 1. 入力画面を隠し、ローディングを表示
+            document.getElementById('setup-view').style.display = 'none';
+            document.getElementById('loading-view').style.display = 'flex';
+
+            // 2. 1.5秒待ってから結果を判定（ドキドキ感を出す演出）
+            setTimeout(() => {
+                document.getElementById('loading-view').style.display = 'none';
+
+                // 確率に基づいて当選か落選かを判定
+                const isWin = Math.random() < WIN_PROBABILITY;
+
+                if (isWin) {
+                    localStorage.setItem(STORAGE_KEY_STATUS, 'win');
+                    localStorage.setItem(STORAGE_KEY_TIME, selectedText);
+                    showWinScreen(selectedText);
+                } else {
+                    localStorage.setItem(STORAGE_KEY_STATUS, 'lose');
+                    showLoseScreen();
                 }
-            };
-            function QRBitBuffer() { this.buffer = []; this.length = 0; }
-            QRBitBuffer.prototype = {
-                get: function(index) {
-                    const bufIndex = Math.floor(index / 8);
-                    return ((this.buffer[bufIndex] >>> (7 - index % 8)) & 1) == 1;
-                },
-                put: function(num, length) {
-                    for (let i = 0; i < length; i++) { this.putBit(((num >>> (length - i - 1)) & 1) == 1); }
-                },
-                getLengthInBits: function() { return this.length; },
-                putBit: function(bit) {
-                    const bufIndex = Math.floor(this.length / 8);
-                    if (this.buffer.length <= bufIndex) { this.buffer.push(0); }
-                    if (bit) { this.buffer[bufIndex] |= (0x80 >>> (this.length % 8)); }
-                    this.length++;
-                }
-            };
-
-            return {
-                generate: function(text, canvasId) {
-                    // 日本語ではない英数字IDに合わせ、サイズVersion 4 (33x33) で固定生成
-                    const qr = new QRCode(4, QRMode.ERROR_CORRECT_LEVEL_H);
-                    qr.addData(text);
-                    qr.make();
-                    
-                    const canvas = document.getElementById(canvasId);
-                    const ctx = canvas.getContext('2d');
-                    const moduleCount = qr.getModuleCount();
-                    const size = canvas.width;
-                    const cellSize = size / moduleCount;
-
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(0, 0, size, size);
-
-                    ctx.fillStyle = '#4a3728';
-                    for (let row = 0; row < moduleCount; row++) {
-                        for (let col = 0; col < moduleCount; col++) {
-                            if (qr.isDark(row, col)) {
-                                ctx.fillRect(
-                                    Math.round(col * cellSize), 
-                                    Math.round(row * cellSize), 
-                                    Math.ceil(cellSize), 
-                                    Math.ceil(cellSize)
-                                );
-                            }
-                        }
-                    }
-                }
-            };
-        })();
-
-        // ==========================================
-        // メイン処理の実行
-        // ==========================================
-        const STORAGE_KEY = "workshop_user_ticket_id";
-        let userTicketId = localStorage.getItem(STORAGE_KEY);
-
-        if (!userTicketId) {
-            const randomStr = Math.random().toString(36).substring(2, 10).toUpperCase();
-            const timestamp = Date.now();
-            userTicketId = `WS-${randomStr}-${timestamp}`;
-            localStorage.setItem(STORAGE_KEY, userTicketId);
+            }, 1500);
         }
 
-        // 画面にシリアルIDを表示
-        document.getElementById('ticket-id-display').textContent = `TICKET ID: ${userTicketId}`;
+        // 当選画面を表示
+        function showWinScreen(timeText) {
+            document.getElementById('setup-view').style.display = 'none';
+            document.getElementById('loading-view').style.display = 'none';
+            document.getElementById('win-time-display').textContent = timeText;
+            document.getElementById('result-win').style.display = 'block';
+        }
 
-        // キャンバスへの自動描画を実行
-        try {
-            QRCodeGenerator.generate(userTicketId, 'qrcode-canvas');
-        } catch (e) {
-            console.error("QRコード生成エラー:", e);
+        // 落選画面を表示
+        function showLoseScreen() {
+            document.getElementById('setup-view').style.display = 'none';
+            document.getElementById('loading-view').style.display = 'none';
+            document.getElementById('result-lose').style.display = 'block';
         }
     </script>
 </body>
