@@ -88,7 +88,6 @@
             margin: 0;
         }
         
-        /* デザインされたバッジ */
         .badge {
             position: absolute;
             right: 12px;
@@ -100,9 +99,9 @@
             border-radius: 20px;
             white-space: nowrap;
         }
-        .badge-firstcome { background-color: #dbeafe; color: #1e40af; } /* 先着：青系 */
-        .badge-lottery { background-color: #d1fae5; color: #065f46; }   /* 抽選：緑系 */
-        .badge-closed { background-color: #fee2e2; color: #991b1b; }    /* 終了・時間外統一：赤系 */
+        .badge-firstcome { background-color: #dbeafe; color: #1e40af; }
+        .badge-lottery { background-color: #d1fae5; color: #065f46; }
+        .badge-closed { background-color: #fee2e2; color: #991b1b; }
 
         .btn-draw {
             width: 100%;
@@ -251,6 +250,7 @@
         </div>
 
         <div id="result-win" class="result-view win-box">
+            <!-- 「当選」のタイトル文字（先着時は非表示になります） -->
             <div class="result-title win-title" id="win-badge-title">当選</div>
             
             <div class="ticket-banner">
@@ -309,6 +309,7 @@
         const STORAGE_KEY_SLOT_TIME = "workshop_lottery_slot_time";
         const STORAGE_KEY_SEAT = "workshop_lottery_seat";
         const STORAGE_KEY_ID = "workshop_user_ticket_id";
+        const STORAGE_KEY_IS_FIRST_COME = "workshop_is_first_come";
 
         let userTicketId = "";
         let selectedItem = null;
@@ -329,13 +330,15 @@
                 localStorage.removeItem(STORAGE_KEY_STATUS);
                 localStorage.removeItem(STORAGE_KEY_SLOT_TIME);
                 localStorage.removeItem(STORAGE_KEY_SEAT);
+                localStorage.removeItem(STORAGE_KEY_IS_FIRST_COME);
             }
 
             const status = localStorage.getItem(STORAGE_KEY_STATUS);
             if (status === 'win') {
                 const savedSlotTime = localStorage.getItem(STORAGE_KEY_SLOT_TIME);
                 const savedSeat = localStorage.getItem(STORAGE_KEY_SEAT);
-                showFinalResult(true, savedSlotTime, savedSeat);
+                const isFirstCome = localStorage.getItem(STORAGE_KEY_IS_FIRST_COME) === 'true';
+                showFinalResult(true, savedSlotTime, savedSeat, isFirstCome);
             } else if (status === 'lose') {
                 showFinalResult(false);
             } else {
@@ -369,7 +372,6 @@
 
                 let isTimeOut = (nowTime < startRecTime || nowTime > endRecTime);
                 
-                // サーバーからのリアルタイム情報
                 const serverInfo = serverSlots.find(s => s.id === item.id) || {};
                 const isFull = serverInfo.isFull || false;
                 const type = serverInfo.type || (item.id === 0 ? "first_come" : "lottery");
@@ -380,7 +382,6 @@
                 let badgeHtml = "";
                 let canSelect = false;
 
-                // 時間外 または 満員 のどちらも「受付終了」に統一
                 if (isTimeOut || isFull) {
                     div.classList.add('disabled');
                     badgeHtml = `<span class="badge badge-closed">受付終了</span>`;
@@ -451,8 +452,9 @@
                     localStorage.setItem(STORAGE_KEY_STATUS, 'win');
                     localStorage.setItem(STORAGE_KEY_SLOT_TIME, data.slotTime);
                     localStorage.setItem(STORAGE_KEY_SEAT, data.slotName);
+                    localStorage.setItem(STORAGE_KEY_IS_FIRST_COME, data.isFirstCome ? 'true' : 'false');
                     
-                    showFinalResult(true, data.slotTime, data.slotName);
+                    showFinalResult(true, data.slotTime, data.slotName, data.isFirstCome);
                 } else {
                     localStorage.setItem(STORAGE_KEY_STATUS, 'lose');
                     showFinalResult(false);
@@ -466,12 +468,20 @@
             });
         }
 
-        function showFinalResult(isWin, slotTime = "", slotName = "") {
+        function showFinalResult(isWin, slotTime = "", slotName = "", isFirstCome = false) {
             document.getElementById('setup-view').style.display = 'none';
             document.getElementById('loading-view').style.display = 'none';
             document.getElementById('app-title').style.display = 'none';
 
             if (isWin) {
+                // 先着順の場合は「当選」のタイトルを非表示にする
+                const titleBadge = document.getElementById('win-badge-title');
+                if (isFirstCome) {
+                    titleBadge.style.display = 'none';
+                } else {
+                    titleBadge.style.display = 'block';
+                }
+
                 document.getElementById('win-time').textContent = `${slotTime} 〜`;
                 document.getElementById('win-seat').textContent = `受付順：${slotName}`;
                 document.getElementById('win-id-display').textContent = `ID: ${userTicketId}`;
