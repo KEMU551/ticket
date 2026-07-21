@@ -250,7 +250,7 @@
         </div>
 
         <div id="result-win" class="result-view win-box">
-            <!-- 「当選」のタイトル文字（先着時は非表示になります） -->
+            <!-- 「当選」または「受付完了」を動的に切り替え -->
             <div class="result-title win-title" id="win-badge-title">当選</div>
             
             <div class="ticket-banner">
@@ -288,7 +288,7 @@
     </div>
 
     <script>
-        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxTx1VzLecju0NMANcR1sZYeBbIKt0hMVtNJAdauV8L-PRWvA2XhNgPz77cEs64mZgy5A/exec";
+        const GAS_WEB_APP_URL = "ここにコピーしたウェブアプリのURLを貼り付ける";
 
         const masterData = [
             { id: 0, label: "10:15～11:00", startRec: "09:45", endRec: "10:45" },
@@ -474,12 +474,13 @@
             document.getElementById('app-title').style.display = 'none';
 
             if (isWin) {
-                // 先着順の場合は「当選」のタイトルを非表示にする
                 const titleBadge = document.getElementById('win-badge-title');
+                
+                // 先着順の場合は「受付完了」、抽選の場合は「当選」を表示
                 if (isFirstCome) {
-                    titleBadge.style.display = 'none';
+                    titleBadge.textContent = "受付完了";
                 } else {
-                    titleBadge.style.display = 'block';
+                    titleBadge.textContent = "当選";
                 }
 
                 document.getElementById('win-time').textContent = `${slotTime} 〜`;
