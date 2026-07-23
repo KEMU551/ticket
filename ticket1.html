@@ -91,7 +91,7 @@
             margin: 0;
         }
         
-        /* バッジ */
+        /* バッジ（受付中、受付終了など） */
         .badge {
             position: absolute;
             right: 15px;
@@ -103,9 +103,10 @@
             border-radius: 20px;
         }
         .badge-active { background-color: #d1fae5; color: #065f46; }
-        .badge-waiting { background-color: #fee2e2; color: #991b1b; }
+        .badge-closed { background-color: #fee2e2; color: #991b1b; }
+        .badge-waiting { background-color: #f3f4f6; color: #4b5563; }
 
-        /* ボタン */
+        /* 抽選するボタン */
         .btn-draw {
             width: 100%;
             padding: 15px;
@@ -169,6 +170,7 @@
             line-height: 1.4;
         }
 
+        .result-meta { font-size: 1.1rem; margin: 10px 0; line-height: 1.5; }
         .result-time-container {
             color: #d97706; 
             font-weight: bold; 
@@ -226,7 +228,7 @@
             margin-top: 15px;
         }
 
-        /* 管理エリア */
+        /* 控えめな管理エリア */
         .admin-meta {
             font-size: 0.8rem;
             color: #9ca3af;
@@ -246,7 +248,7 @@
         
         <!-- 1. 抽選選択画面 -->
         <div id="setup-view" style="display: none;">
-            <p class="desc">ご希望の時間帯をタップして選択し、<br>「受付を行う」ボタンを押してください。<br>※お一人様一回限りです。</p>
+            <p class="desc">ご希望の時間帯をタップして選択し、<br>「エントリーを行う」ボタンを押してください。<br>※お一人様一回限りです。</p>
             
             <div class="time-list" id="time-list-container"></div>
             
@@ -259,7 +261,7 @@
             <p id="loading-text" style="color: #b45309; font-weight: bold; font-size: 1.2rem; margin: 0;">空き状況を取得中・・・</p>
         </div>
 
-        <!-- 3. 当選画面 -->
+        <!-- 3. 当選画面 (ticket-v4と同じレイアウト) -->
         <div id="result-win" class="result-view win-box">
             <div class="result-title win-title">当選</div>
             
@@ -289,7 +291,7 @@
         <!-- 4. 落選画面 -->
         <div id="result-lose" class="result-view lose-box">
             <div class="result-title lose-title">抽選結果</div>
-            <p class="lose-desc">申し訳ございません。ご希望の時間帯はお取りできませんでした。受付は1日1回までです</p>
+            <p class="lose-desc">申し訳ございません。ご希望の時間帯はお取りできませんでした。エントリーは1日1回までです</p>
             
             <div class="admin-meta" style="justify-content: center;">
                 <span id="lose-id-display">ID: --</span>
@@ -304,14 +306,14 @@
         // ==========================================
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxTx1VzLecju0NMANcR1sZYeBbIKt0hMVtNJAdauV8L-PRWvA2XhNgPz77cEs64mZgy5A/exec";
 
-        // ★時間帯マスタ（先着枠を復活）
+        // 時間帯マスタ（先着枠＋抽選枠の区別を保持）
         const masterData = [
-            { id: 0, label: "10:15～11:00 (先着枠)", startRec: "09:45", endRec: "11:00" },
-            { id: 1, label: "11:00～12:00",          startRec: "09:45", endRec: "10:45" },
-            { id: 2, label: "12:00～13:00",          startRec: "09:45", endRec: "11:45" },
-            { id: 3, label: "14:00～15:00",          startRec: "09:45", endRec: "13:45" },
-            { id: 4, label: "15:00～16:00",          startRec: "09:45", endRec: "14:45" },
-            { id: 5, label: "16:00～16:45",          startRec: "09:45", endRec: "15:45" }
+            { id: 0, label: "10:15～11:00 (先着受付)", startRec: "09:45", endRec: "11:00", type: "first_come" },
+            { id: 1, label: "11:00～12:00 (抽選受付)", startRec: "09:45", endRec: "10:45", type: "lottery" },
+            { id: 2, label: "12:00～13:00 (抽選受付)", startRec: "09:45", endRec: "11:45", type: "lottery" },
+            { id: 3, label: "14:00～15:00 (抽選受付)", startRec: "09:45", endRec: "13:45", type: "lottery" },
+            { id: 4, label: "15:00～16:00 (抽選受付)", startRec: "09:45", endRec: "14:45", type: "lottery" },
+            { id: 5, label: "16:00～16:45 (抽選受付)", startRec: "09:45", endRec: "15:45", type: "lottery" }
         ];
 
         const getTodayDateString = () => {
@@ -369,6 +371,7 @@
             });
         }
 
+        // 時間帯一覧リストを描画
         function renderTimeList(serverData) {
             const container = document.getElementById('time-list-container');
             container.innerHTML = "";
@@ -381,6 +384,7 @@
                 const endRecTime = new Date(`${todayStr} ${item.endRec}`).getTime();
                 const nowTime = now.getTime();
 
+                // 判定：受付時間内かどうかだけを見る（残枠有無に関わらず、時間内なら受付中）
                 let isTimeOut = (nowTime < startRecTime || nowTime > endRecTime);
 
                 const div = document.createElement('div');
@@ -390,8 +394,9 @@
 
                 if (isTimeOut) {
                     div.classList.add('disabled');
-                    badgeHtml = `<span class="badge badge-waiting">受付終了</span>`;
+                    badgeHtml = `<span class="badge badge-waiting">受付時間外</span>`;
                 } else {
+                    // 受付時間内はすべて「受付中」としてタップ可能
                     badgeHtml = `<span class="badge badge-active">受付中</span>`;
                     div.onclick = function() { selectTime(item.id, div); };
                 }
@@ -417,14 +422,14 @@
 
             const btn = document.getElementById('btn-draw-submit');
             btn.disabled = false;
-            btn.textContent = "受付を行う";
+            btn.textContent = "エントリーを行う";
         }
 
         function drawLottery() {
             if (selectedId === null) return;
 
             document.getElementById('setup-view').style.display = 'none';
-            document.getElementById('loading-text').textContent = "処理中・・・";
+            document.getElementById('loading-text').textContent = "通信中・・・";
             document.getElementById('loading-view').style.display = 'flex';
 
             fetch(GAS_WEB_APP_URL, {
