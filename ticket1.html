@@ -105,7 +105,7 @@
         .badge-active { background-color: #d1fae5; color: #065f46; }
         .badge-waiting { background-color: #fee2e2; color: #991b1b; }
 
-        /* 抽選するボタン */
+        /* ボタン */
         .btn-draw {
             width: 100%;
             padding: 15px;
@@ -246,7 +246,7 @@
         
         <!-- 1. 抽選選択画面 -->
         <div id="setup-view" style="display: none;">
-            <p class="desc">ご希望の時間帯をタップして選択し、<br>「抽選を行う」ボタンを押してください。<br>※お一人様一回限りです。</p>
+            <p class="desc">ご希望の時間帯をタップして選択し、<br>「受付を行う」ボタンを押してください。<br>※お一人様一回限りです。</p>
             
             <div class="time-list" id="time-list-container"></div>
             
@@ -289,7 +289,7 @@
         <!-- 4. 落選画面 -->
         <div id="result-lose" class="result-view lose-box">
             <div class="result-title lose-title">抽選結果</div>
-            <p class="lose-desc">申し訳ございません。ご希望の時間帯はお取りできませんでした。抽選は1日1回までです</p>
+            <p class="lose-desc">申し訳ございません。ご希望の時間帯はお取りできませんでした。受付は1日1回までです</p>
             
             <div class="admin-meta" style="justify-content: center;">
                 <span id="lose-id-display">ID: --</span>
@@ -304,12 +304,14 @@
         // ==========================================
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxTx1VzLecju0NMANcR1sZYeBbIKt0hMVtNJAdauV8L-PRWvA2XhNgPz77cEs64mZgy5A/exec";
 
+        // ★時間帯マスタ（先着枠を復活）
         const masterData = [
-            { id: 0, label: "11:00～12:00", startRec: "09:45", endRec: "10:45" },
-            { id: 1, label: "12:00～13:00", startRec: "09:45", endRec: "11:45" },
-            { id: 2, label: "14:00～15:00", startRec: "09:45", endRec: "13:45" },
-            { id: 3, label: "15:00～16:00", startRec: "09:45", endRec: "14:45" },
-            { id: 4, label: "16:00～16:45", startRec: "09:45", endRec: "15:45" }
+            { id: 0, label: "10:15～11:00 (先着枠)", startRec: "09:45", endRec: "11:00" },
+            { id: 1, label: "11:00～12:00",          startRec: "09:45", endRec: "10:45" },
+            { id: 2, label: "12:00～13:00",          startRec: "09:45", endRec: "11:45" },
+            { id: 3, label: "14:00～15:00",          startRec: "09:45", endRec: "13:45" },
+            { id: 4, label: "15:00～16:00",          startRec: "09:45", endRec: "14:45" },
+            { id: 5, label: "16:00～16:45",          startRec: "09:45", endRec: "15:45" }
         ];
 
         const getTodayDateString = () => {
@@ -357,7 +359,6 @@
         };
 
         function fetchCurrentStatus() {
-            // 枠数の取得に失敗した場合でも一覧を表示できるようfallback処理
             fetch(GAS_WEB_APP_URL + "?action=status")
             .then(response => response.json())
             .then(serverData => {
@@ -380,7 +381,6 @@
                 const endRecTime = new Date(`${todayStr} ${item.endRec}`).getTime();
                 const nowTime = now.getTime();
 
-                // 現在時刻が受付時間外かどうかだけを判定
                 let isTimeOut = (nowTime < startRecTime || nowTime > endRecTime);
 
                 const div = document.createElement('div');
@@ -390,10 +390,8 @@
 
                 if (isTimeOut) {
                     div.classList.add('disabled');
-                    // ★「受付時間外」から「受付終了」に変更
                     badgeHtml = `<span class="badge badge-waiting">受付終了</span>`;
                 } else {
-                    // 受付時間内は常に「受付中」でタップ可能（解放枠が無くても抽選で落選判定するため）
                     badgeHtml = `<span class="badge badge-active">受付中</span>`;
                     div.onclick = function() { selectTime(item.id, div); };
                 }
@@ -419,14 +417,14 @@
 
             const btn = document.getElementById('btn-draw-submit');
             btn.disabled = false;
-            btn.textContent = "抽選を行う";
+            btn.textContent = "受付を行う";
         }
 
         function drawLottery() {
             if (selectedId === null) return;
 
             document.getElementById('setup-view').style.display = 'none';
-            document.getElementById('loading-text').textContent = "抽選中・・・";
+            document.getElementById('loading-text').textContent = "処理中・・・";
             document.getElementById('loading-view').style.display = 'flex';
 
             fetch(GAS_WEB_APP_URL, {
@@ -473,7 +471,7 @@
 
             if (isWin) {
                 document.getElementById('win-time').textContent = `${slotTime} 〜`;
-                document.getElementById('win-seat').textContent = `当選順：${slotName}`;
+                document.getElementById('win-seat').textContent = `受付順：${slotName}`;
                 document.getElementById('win-id-display').textContent = `ID: ${userTicketId}`;
                 document.getElementById('result-win').style.display = 'block';
             } else {
