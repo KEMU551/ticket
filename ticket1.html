@@ -1,373 +1,497 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>整理券・抽選受付</title>
-  <style>
-    :root {
-      --primary-color: #007bff;
-      --success-color: #28a745;
-      --danger-color: #dc3545;
-      --bg-color: #f4f6f9;
-      --card-bg: #ffffff;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ワークショップ エントリー受付</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #fdf6ec;
+            color: #4a3728;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .card {
+            background-color: #ffffff;
+            border: 3px solid #f59e0b;
+            border-radius: 20px;
+            padding: 25px 15px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 10px 20px rgba(245, 158, 11, 0.15);
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 1.6rem;
+            color: #d97706;
+            margin-top: 0;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        .desc {
+            font-size: 0.9rem;
+            color: #78350f;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .time-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .time-item {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 12px 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            background-color: #f9fafb;
+        }
+        .time-item.selected {
+            border-color: #f59e0b;
+            background-color: #fffbeb;
+            box-shadow: 0 0 0 1px #f59e0b;
+        }
+        .time-item.selected .time-title {
+            color: #b45309;
+        }
+        
+        .time-item.disabled {
+            border-color: #e5e7eb;
+            background-color: #f3f4f6;
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+        
+        .time-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #374151;
+            margin: 0 0 4px 0;
+        }
+        .time-meta {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin: 0;
+        }
+        
+        .badge {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.75rem;
+            font-weight: bold;
+            padding: 4px 8px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .badge-firstcome { background-color: #dbeafe; color: #1e40af; }
+        .badge-lottery { background-color: #d1fae5; color: #065f46; }
+        .badge-closed { background-color: #fee2e2; color: #991b1b; }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background-color: var(--bg-color);
-      margin: 0;
-      padding: 16px;
-      color: #333;
-      display: flex;
-      justify-content: center;
-    }
+        .btn-draw {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background-color: #d97706;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(217, 119, 6, 0.2);
+            transition: background 0.2s;
+        }
+        .btn-draw:hover {
+            background-color: #b45309;
+        }
+        .btn-draw:disabled {
+            background-color: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
 
-    .container {
-      width: 100%;
-      max-width: 480px;
-      background: var(--card-bg);
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      padding: 20px;
-      box-sizing: border-box;
-    }
+        .loading-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            width: 70px; height: 70px;
+            border: 7px solid rgba(245, 158, 11, 0.2);
+            border-top: 7px solid #d97706;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-    h1 {
-      font-size: 1.25rem;
-      text-align: center;
-      margin-top: 0;
-      margin-bottom: 20px;
-      color: #222;
-      border-bottom: 2px solid var(--primary-color);
-      padding-bottom: 8px;
-    }
+        .result-view {
+            display: none;
+            border-radius: 15px;
+            padding: 25px 15px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .win-box { background-color: #ecfdf5; border: 3px solid #10b981; color: #065f46; }
+        .lose-box { background-color: #fff5f5; border: 3px solid #f87171; color: #991b1b; }
+        
+        .result-title { font-size: 1.8rem; font-weight: bold; margin-bottom: 15px; line-height: 1.3; }
+        .win-title { color: #047857; font-size: 2.2rem; border-bottom: 2px solid #10b981; padding-bottom: 10px; margin-bottom: 20px; }
+        .lose-title { color: #dc2626; }
+        
+        .ticket-banner {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #065f46;
+            margin: 10px 0 15px 0;
+            line-height: 1.4;
+        }
 
-    /* 時間帯スロットリスト */
-    .slot-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+        .result-time-container {
+            color: #d97706; 
+            font-weight: bold; 
+            font-size: 1.8rem;
+            display: block;
+            margin: 15px 0;
+            background-color: #ffffff;
+            border: 2px dashed #10b981;
+            padding: 15px 10px;
+            border-radius: 10px;
+            line-height: 1.4;
+        }
+        .result-time-title {
+            font-size: 1.8rem;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .result-time-val {
+            font-size: 1.8rem;
+            display: block;
+        }
 
-    .slot-card {
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: all 0.2s ease;
-    }
+        .notes-box {
+            text-align: left;
+            font-size: 0.85rem;
+            background-color: #ffffff;
+            border: 1px solid #d1fae5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            color: #047857;
+            line-height: 1.6;
+        }
+        .notes-box ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .notes-box li {
+            margin-bottom: 8px;
+        }
+        .notes-box li:last-child {
+            margin-bottom: 0;
+        }
+        .notes-alert {
+            font-weight: bold;
+            color: #b45309;
+        }
 
-    .slot-info {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+        .lose-desc {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #991b1b;
+            margin-top: 15px;
+        }
 
-    .slot-title {
-      font-weight: bold;
-      font-size: 1rem;
-    }
-
-    .slot-type-badge {
-      display: inline-block;
-      font-size: 0.75rem;
-      padding: 2px 6px;
-      border-radius: 4px;
-      width: fit-content;
-    }
-
-    .badge-lottery {
-      background-color: #e3f2fd;
-      color: #0d47a1;
-    }
-
-    .badge-firstcome {
-      background-color: #e8f5e9;
-      color: #1b5e20;
-    }
-
-    .apply-btn {
-      background-color: var(--primary-color);
-      color: #fff;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-
-    .apply-btn:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
-    }
-
-    /* ローディング画面 */
-    .loading-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.85);
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      z-index: 1000;
-    }
-
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid var(--primary-color);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* 結果画面・チケット表示 */
-    .result-container {
-      display: none;
-      text-align: center;
-      padding: 10px 0;
-    }
-
-    .ticket {
-      border: 2px dashed #007bff;
-      background: #f8f9fa;
-      border-radius: 12px;
-      padding: 20px;
-      margin-top: 15px;
-      position: relative;
-    }
-
-    .ticket-header {
-      font-size: 1.4rem;
-      font-weight: bold;
-      color: var(--success-color);
-      margin-bottom: 10px;
-    }
-
-    .ticket-time-label {
-      font-size: 0.9rem;
-      color: #666;
-    }
-
-    .ticket-time {
-      font-size: 2.2rem;
-      font-weight: bold;
-      color: #111;
-      margin: 8px 0;
-    }
-
-    .ticket-order {
-      font-size: 1.1rem;
-      color: #444;
-      margin-bottom: 15px;
-    }
-
-    .lose-message {
-      color: var(--danger-color);
-      font-size: 1.3rem;
-      font-weight: bold;
-      margin: 20px 0;
-    }
-
-    .notice-box {
-      font-size: 0.85rem;
-      color: #666;
-      background: #eee;
-      padding: 10px;
-      border-radius: 6px;
-      text-align: left;
-      margin-top: 15px;
-    }
-  </style>
+        .admin-meta {
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-top: 30px;
+            border-top: 1px dashed #e5e7eb;
+            padding-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
 </head>
 <body>
 
-  <div class="container">
-    <!-- 時間帯一覧画面 -->
-    <div id="listScreen">
-      <h1>参加受付・抽選申し込み</h1>
-      <div id="slotList" class="slot-list">
-        <!-- JSで動的に追加されます -->
-      </div>
-    </div>
+    <div class="card">
+        <h1 id="app-title">ワークショップ<br>エントリー受付</h1>
+        
+        <div id="setup-view" style="display: none;">
+            <p class="desc">ご希望の時間帯を選択し、<br>下部のボタンを押してください。</p>
+            
+            <div class="time-list" id="time-list-container"></div>
+            
+            <button class="btn-draw" id="btn-draw-submit" onclick="drawLottery()" disabled>時間帯を選択してください</button>
+        </div>
 
-    <!-- 結果表示画面 -->
-    <div id="resultScreen" class="result-container">
-      <div id="resultContent"></div>
-    </div>
-  </div>
+        <div id="loading-view" class="loading-container" style="display: flex;">
+            <div class="spinner"></div>
+            <p id="loading-text" style="color: #b45309; font-weight: bold; font-size: 1.2rem; margin: 0;">空き状況を取得中・・・</p>
+        </div>
 
-  <!-- ローディング表示 -->
-  <div id="loading" class="loading-overlay">
-    <div class="spinner"></div>
-    <p style="margin-top: 12px; font-weight: bold;">処理中...</p>
-  </div>
-
-  <script>
-    // ⚠️ お使いのGASのウェブアプリURLに置き換えてください
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxTx1VzLecju0NMANcR1sZYeBbIKt0hMVtNJAdauV8L-PRWvA2XhNgPz77cEs64mZgy5A/exec";
-
-    // LIFF等から取得するユーザーID（テスト用フォールバック付）
-    const userId = getUserId();
-
-    // 定義データ（マスター）
-    const MASTER_SLOTS = [
-      { id: 0, label: "10:15～11:00", type: "first_come" },
-      { id: 1, label: "11:00～12:00", type: "lottery" },
-      { id: 2, label: "12:00～13:00", type: "lottery" },
-      { id: 3, label: "14:00～15:00", type: "lottery" },
-      { id: 4, label: "15:00～16:00", type: "lottery" },
-      { id: 5, label: "16:00～16:45", type: "lottery" }
-    ];
-
-    window.onload = function() {
-      fetchStatus();
-    };
-
-    function getUserId() {
-      let id = localStorage.getItem("test_user_id");
-      if (!id) {
-        id = "USER_" + Math.random().toString(36).substring(2, 9);
-        localStorage.setItem("test_user_id", id);
-      }
-      return id;
-    }
-
-    // 1. 空き状況・受付状態の取得
-    function fetchStatus() {
-      showLoading(true);
-      fetch(`${GAS_URL}?action=status`)
-        .then(res => res.json())
-        .then(data => {
-          showLoading(false);
-          if (data.success) {
-            renderSlotList(data.slots);
-          } else {
-            alert("エラー: " + data.message);
-          }
-        })
-        .catch(err => {
-          showLoading(false);
-          alert("通信に失敗しました。電波の良い場所で再度お試しください。");
-        });
-    }
-
-    // 2. 一覧画面の描画
-    function renderSlotList(apiSlots) {
-      const container = document.getElementById("slotList");
-      container.innerHTML = "";
-
-      MASTER_SLOTS.forEach(master => {
-        const status = apiSlots.find(s => s.id === master.id) || {};
-        const isFull = status.isFull || false;
-        const type = status.type || master.type;
-
-        const card = document.createElement("div");
-        card.className = "slot-card";
-
-        const typeBadge = type === "first_come" 
-          ? `<span class="slot-type-badge badge-firstcome">先着順</span>`
-          : `<span class="slot-type-badge badge-lottery">抽選</span>`;
-
-        card.innerHTML = `
-          <div class="slot-info">
-            ${typeBadge}
-            <div class="slot-title">${master.label}</div>
-          </div>
-          <button class="apply-btn" ${isFull ? 'disabled' : ''} onclick="applySlot(${master.id})">
-            ${isFull ? '受付終了' : (type === 'first_come' ? '申し込む' : '抽選を行う')}
-          </button>
-        `;
-
-        container.appendChild(card);
-      });
-    }
-
-    // 3. 申し込み/抽選リクエスト実行
-    function applySlot(slotId) {
-      if (!confirm("この時間帯で申し込みますか？")) return;
-
-      showLoading(true);
-      fetch(GAS_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: slotId,
-          userId: userId
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        showLoading(false);
-        if (data.success) {
-          showResult(data);
-        } else {
-          alert(data.message || "処理に失敗しました。");
-        }
-      })
-      .catch(err => {
-        showLoading(false);
-        alert("通信に失敗しました。電波の良い場所で再度お試しください。");
-      });
-    }
-
-    // 4. 結果画面の表示制御
-    function showResult(data) {
-      document.getElementById("listScreen").style.display = "none";
-      const resultScreen = document.getElementById("resultScreen");
-      const resultContent = document.getElementById("resultContent");
-      resultScreen.style.display = "block";
-
-      if (data.isWin) {
-        // 先着順の場合は「受付完了」、抽選枠の場合は「当選」
-        const titleText = data.isFirstCome ? "受付完了" : "当選";
-        const badgeText = data.isFirstCome ? "受付完了 整理券" : "当選 整理券";
-
-        resultContent.innerHTML = `
-          <div class="ticket">
-            <div class="ticket-header">${titleText}</div>
-            <div style="font-size:0.85rem; color:#007bff; font-weight:bold; margin-bottom:10px;">
-              [ ${badgeText} ]
+        <div id="result-win" class="result-view win-box">
+            <!-- 「当選」または「受付完了」を動的に切り替え -->
+            <div class="result-title win-title" id="win-badge-title">当選</div>
+            
+            <div class="ticket-banner">
+                ワークショップ参加整理券
             </div>
             
-            <div class="ticket-time-label">指定集合時間</div>
-            <div class="ticket-time">${data.slotTime}</div>
-            <div class="ticket-order">案内順: ${data.slotName}</div>
-
-            <div class="notice-box">
-              ※こちらの画面をスタッフにご提示ください。
+            <div class="result-time-container">
+                <span class="result-time-title">参加受付時間</span>
+                <span class="result-time-val" id="win-time">--:-- 〜</span>
             </div>
-          </div>
-        `;
-      } else {
-        // 落選画面
-        resultContent.innerHTML = `
-          <div class="lose-message">残念ながら落選となりました</div>
-          <p style="font-size:0.9rem; color:#666;">
-            本日の先着受付が終了したか、抽選に漏れてしまいました。<br>
-            抽選は1日1回までです。
-          </p>
-        `;
-      }
-    }
 
-    function showLoading(flag) {
-      document.getElementById("loading").style.display = flag ? "flex" : "none";
-    }
-  </script>
+            <div class="notes-box">
+                <ul>
+                    <li>本画面のご提示で1人1回参加できます。</li>
+                    <li>お時間になりましたらワークショップコーナーへお越しいただき、この画面をスタッフへご提示ください。</li>
+                    <li class="notes-alert">ブラウザのこの画面はワークショップ参加まで閉じずに保存してください。エラー等に備え、念のため本画面のスクリーンショットを撮影し、保存してください。ワークショップ参加時には、スクリーンショットではなく、ブラウザ上の本画面を確認いたします。</li>
+                </ul>
+            </div>
+            
+            <div class="admin-meta">
+                <span id="win-seat">管理用：--</span>
+                <span id="win-id-display">ID: --</span>
+            </div>
+        </div>
+
+        <div id="result-lose" class="result-view lose-box">
+            <div class="result-title lose-title">受付結果</div>
+            <p class="lose-desc" id="lose-message-text">申し訳ございません。ご希望の時間帯はお取りできませんでした。</p>
+            
+            <div class="admin-meta" style="justify-content: center;">
+                <span id="lose-id-display">ID: --</span>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxTx1VzLecju0NMANcR1sZYeBbIKt0hMVtNJAdauV8L-PRWvA2XhNgPz77cEs64mZgy5A/exec";
+
+        const masterData = [
+            { id: 0, label: "10:15～11:00", startRec: "09:45", endRec: "10:45" },
+            { id: 1, label: "11:00～12:00", startRec: "09:45", endRec: "10:45" },
+            { id: 2, label: "12:00～13:00", startRec: "09:45", endRec: "11:45" },
+            { id: 3, label: "14:00～15:00", startRec: "09:45", endRec: "13:45" },
+            { id: 4, label: "15:00～16:00", startRec: "09:45", endRec: "14:45" },
+            { id: 5, label: "16:00～16:45", startRec: "09:45", endRec: "15:45" }
+        ];
+
+        const getTodayDateString = () => {
+            const d = new Date();
+            return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+        };
+
+        const STORAGE_KEY_DATE = "workshop_lottery_date";
+        const STORAGE_KEY_STATUS = "workshop_lottery_status";
+        const STORAGE_KEY_SLOT_TIME = "workshop_lottery_slot_time";
+        const STORAGE_KEY_SEAT = "workshop_lottery_seat";
+        const STORAGE_KEY_ID = "workshop_user_ticket_id";
+        const STORAGE_KEY_IS_FIRST_COME = "workshop_is_first_come";
+
+        let userTicketId = "";
+        let selectedItem = null;
+
+        window.onload = function() {
+            const todayStr = getTodayDateString();
+            const lastActiveDate = localStorage.getItem(STORAGE_KEY_DATE);
+
+            userTicketId = localStorage.getItem(STORAGE_KEY_ID);
+            if (!userTicketId) {
+                const randomStr = Math.random().toString(36).substring(2, 10).toUpperCase();
+                const timestamp = Date.now();
+                userTicketId = `WS-${randomStr}-${timestamp}`;
+                localStorage.setItem(STORAGE_KEY_ID, userTicketId);
+            }
+
+            if (lastActiveDate !== todayStr) {
+                localStorage.removeItem(STORAGE_KEY_STATUS);
+                localStorage.removeItem(STORAGE_KEY_SLOT_TIME);
+                localStorage.removeItem(STORAGE_KEY_SEAT);
+                localStorage.removeItem(STORAGE_KEY_IS_FIRST_COME);
+            }
+
+            const status = localStorage.getItem(STORAGE_KEY_STATUS);
+            if (status === 'win') {
+                const savedSlotTime = localStorage.getItem(STORAGE_KEY_SLOT_TIME);
+                const savedSeat = localStorage.getItem(STORAGE_KEY_SEAT);
+                const isFirstCome = localStorage.getItem(STORAGE_KEY_IS_FIRST_COME) === 'true';
+                showFinalResult(true, savedSlotTime, savedSeat, isFirstCome);
+            } else if (status === 'lose') {
+                showFinalResult(false);
+            } else {
+                fetchCurrentStatus();
+            }
+        };
+
+        function fetchCurrentStatus() {
+            fetch(GAS_WEB_APP_URL + "?action=status")
+            .then(response => response.json())
+            .then(serverData => {
+                renderTimeList(serverData.slots || []);
+            })
+            .catch(error => {
+                console.warn("リアルタイム取得失敗。デフォルト判定表示します。", error);
+                renderTimeList([]);
+            });
+        }
+
+        function renderTimeList(serverSlots) {
+            const container = document.getElementById('time-list-container');
+            container.innerHTML = "";
+
+            const now = new Date();
+            const todayStr = now.toLocaleDateString('en-US');
+
+            masterData.forEach(item => {
+                const startRecTime = new Date(`${todayStr} ${item.startRec}`).getTime();
+                const endRecTime = new Date(`${todayStr} ${item.endRec}`).getTime();
+                const nowTime = now.getTime();
+
+                let isTimeOut = (nowTime < startRecTime || nowTime > endRecTime);
+                
+                const serverInfo = serverSlots.find(s => s.id === item.id) || {};
+                const isFull = serverInfo.isFull || false;
+                const type = serverInfo.type || (item.id === 0 ? "first_come" : "lottery");
+
+                const div = document.createElement('div');
+                div.className = "time-item";
+                
+                let badgeHtml = "";
+                let canSelect = false;
+
+                if (isTimeOut || isFull) {
+                    div.classList.add('disabled');
+                    badgeHtml = `<span class="badge badge-closed">受付終了</span>`;
+                } else {
+                    canSelect = true;
+                    if (type === "first_come") {
+                        badgeHtml = `<span class="badge badge-firstcome">先着受付中</span>`;
+                    } else {
+                        badgeHtml = `<span class="badge badge-lottery">抽選受付</span>`;
+                    }
+                }
+
+                if (canSelect) {
+                    div.onclick = function() { selectTime(item, type, div); };
+                }
+
+                div.innerHTML = `
+                    <p class="time-title">${item.label}</p>
+                    <p class="time-meta">（受付時間：${item.startRec} 〜 ${item.endRec}）</p>
+                    ${badgeHtml}
+                `;
+                container.appendChild(div);
+            });
+
+            document.getElementById('loading-view').style.display = 'none';
+            document.getElementById('setup-view').style.display = 'block';
+        }
+
+        function selectTime(item, type, element) {
+            const items = document.querySelectorAll('.time-item');
+            items.forEach(i => i.classList.remove('selected'));
+
+            element.classList.add('selected');
+            selectedItem = { id: item.id, type: type };
+
+            const btn = document.getElementById('btn-draw-submit');
+            btn.disabled = false;
+            btn.textContent = (type === "first_come") ? "申し込む（先着確定）" : "抽選を行う";
+        }
+
+        function drawLottery() {
+            if (!selectedItem) return;
+
+            document.getElementById('setup-view').style.display = 'none';
+            document.getElementById('loading-text').textContent = (selectedItem.type === "first_come") ? "処理中・・・" : "抽選中・・・";
+            document.getElementById('loading-view').style.display = 'flex';
+
+            fetch(GAS_WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    id: selectedItem.id,
+                    userId: userTicketId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading-view').style.display = 'none';
+
+                if (!data.success) {
+                    alert("エラー: " + (data.message || "もう一度お試しください。"));
+                    document.getElementById('setup-view').style.display = 'block';
+                    return;
+                }
+
+                localStorage.setItem(STORAGE_KEY_DATE, getTodayDateString());
+
+                if (data.isWin) {
+                    localStorage.setItem(STORAGE_KEY_STATUS, 'win');
+                    localStorage.setItem(STORAGE_KEY_SLOT_TIME, data.slotTime);
+                    localStorage.setItem(STORAGE_KEY_SEAT, data.slotName);
+                    localStorage.setItem(STORAGE_KEY_IS_FIRST_COME, data.isFirstCome ? 'true' : 'false');
+                    
+                    showFinalResult(true, data.slotTime, data.slotName, data.isFirstCome);
+                } else {
+                    localStorage.setItem(STORAGE_KEY_STATUS, 'lose');
+                    showFinalResult(false);
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading-view').style.display = 'none';
+                document.getElementById('setup-view').style.display = 'block';
+                alert("通信に失敗しました。電波の良い場所で再度お試しください。");
+                console.error(error);
+            });
+        }
+
+        function showFinalResult(isWin, slotTime = "", slotName = "", isFirstCome = false) {
+            document.getElementById('setup-view').style.display = 'none';
+            document.getElementById('loading-view').style.display = 'none';
+            document.getElementById('app-title').style.display = 'none';
+
+            if (isWin) {
+                const titleBadge = document.getElementById('win-badge-title');
+                
+                // 先着順の場合は「受付完了」、抽選の場合は「当選」を表示
+                if (isFirstCome) {
+                    titleBadge.textContent = "受付完了";
+                } else {
+                    titleBadge.textContent = "当選";
+                }
+
+                document.getElementById('win-time').textContent = `${slotTime} 〜`;
+                document.getElementById('win-seat').textContent = `受付順：${slotName}`;
+                document.getElementById('win-id-display').textContent = `ID: ${userTicketId}`;
+                document.getElementById('result-win').style.display = 'block';
+            } else {
+                document.getElementById('lose-id-display').textContent = `ID: ${userTicketId}`;
+                document.getElementById('result-lose').style.display = 'block';
+            }
+        }
+    </script>
 </body>
 </html>
