@@ -370,6 +370,7 @@
                 const endRecTime = new Date(`${todayStr} ${item.endRec}`).getTime();
                 const nowTime = now.getTime();
 
+                // 受付時間外かどうか判定
                 let isTimeOut = (nowTime < startRecTime || nowTime > endRecTime);
                 
                 const serverInfo = serverSlots.find(s => s.id === item.id) || {};
@@ -382,6 +383,7 @@
                 let badgeHtml = "";
                 let canSelect = false;
 
+                // 時間外、またはGASからisFull(先着定員到達等)が返ってきた場合のみ「受付終了」
                 if (isTimeOut || isFull) {
                     div.classList.add('disabled');
                     badgeHtml = `<span class="badge badge-closed">受付終了</span>`;
@@ -476,7 +478,6 @@
             if (isWin) {
                 const titleBadge = document.getElementById('win-badge-title');
                 
-                // 先着順の場合は「受付完了」、抽選の場合は「当選」を表示
                 if (isFirstCome) {
                     titleBadge.textContent = "受付完了";
                 } else {
